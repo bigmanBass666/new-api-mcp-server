@@ -7,6 +7,60 @@
   },
   "tags": [
     {
+      "name": "获取模型列表"
+    },
+    {
+      "name": "OpenAI格式(Chat)"
+    },
+    {
+      "name": "OpenAI格式(Responses)"
+    },
+    {
+      "name": "图片生成"
+    },
+    {
+      "name": "图片生成/OpenAI兼容格式"
+    },
+    {
+      "name": "图片生成/Qwen千问"
+    },
+    {
+      "name": "视频生成"
+    },
+    {
+      "name": "视频生成/Sora兼容格式"
+    },
+    {
+      "name": "视频生成/Kling格式"
+    },
+    {
+      "name": "视频生成/即梦格式"
+    },
+    {
+      "name": "Claude格式(Messages)"
+    },
+    {
+      "name": "Gemini格式"
+    },
+    {
+      "name": "OpenAI格式(Embeddings)"
+    },
+    {
+      "name": "文本补全(Completions)"
+    },
+    {
+      "name": "OpenAI音频(Audio)"
+    },
+    {
+      "name": "重排序(Rerank)"
+    },
+    {
+      "name": "Moderations"
+    },
+    {
+      "name": "Realtime"
+    },
+    {
       "name": "未实现"
     },
     {
@@ -14,18 +68,6 @@
     },
     {
       "name": "未实现/Files"
-    },
-    {
-      "name": "Midjourney"
-    },
-    {
-      "name": "Gemini"
-    },
-    {
-      "name": "Anthropic"
-    },
-    {
-      "name": "OpenAI"
     }
   ],
   "paths": {
@@ -36,7 +78,7 @@
         "description": "获取当前可用的模型列表。\n\n根据请求头自动识别返回格式：\n- 包含 `x-api-key` 和 `anthropic-version` 头时返回 Anthropic 格式\n- 包含 `x-goog-api-key` 头或 `key` 查询参数时返回 Gemini 格式\n- 其他情况返回 OpenAI 格式\n",
         "operationId": "listModels",
         "tags": [
-          "OpenAI"
+          "获取模型列表"
         ],
         "parameters": [
           {
@@ -118,7 +160,7 @@
         "description": "以 Gemini API 格式返回可用模型列表",
         "operationId": "listModelsGemini",
         "tags": [
-          "Gemini"
+          "获取模型列表"
         ],
         "parameters": [],
         "responses": {
@@ -148,7 +190,7 @@
         "description": "根据对话历史创建模型响应。支持流式和非流式响应。\n\n兼容 OpenAI Chat Completions API。\n",
         "operationId": "createChatCompletion",
         "tags": [
-          "OpenAI"
+          "OpenAI格式(Chat)"
         ],
         "parameters": [],
         "requestBody": {
@@ -210,7 +252,7 @@
         "description": "OpenAI Responses API，用于创建模型响应。\n支持多轮对话、工具调用、推理等功能。\n",
         "operationId": "createResponse",
         "tags": [
-          "OpenAI"
+          "OpenAI格式(Responses)"
         ],
         "parameters": [],
         "requestBody": {
@@ -243,26 +285,26 @@
         ]
       }
     },
-    "/v1/responses/compact": {
-      "post": {
-        "summary": "压缩对话 (OpenAI Responses API)",
-        "deprecated": false,
-        "description": "OpenAI Responses API，用于对长对话进行 compaction。",
-        "operationId": "compactResponse",
+	    "/v1/responses/compact": {
+	      "post": {
+	        "summary": "压缩对话 (OpenAI Responses API)",
+	        "deprecated": false,
+	        "description": "OpenAI Responses API，用于对长对话进行 compaction。",
+	        "operationId": "compactResponse",
         "tags": [
-          "OpenAI"
+          "OpenAI格式(Responses)"
         ],
         "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ResponsesCompactionRequest"
-              }
-            }
-          },
-          "required": true
-        },
+	        "requestBody": {
+	          "content": {
+	            "application/json": {
+	              "schema": {
+	                "$ref": "#/components/schemas/ResponsesCompactionRequest"
+	              }
+	            }
+	          },
+	          "required": true
+	        },
         "responses": {
           "200": {
             "description": "成功压缩对话",
@@ -290,7 +332,7 @@
         "description": " 百炼qwen-image系列图片生成",
         "operationId": "createImage",
         "tags": [
-          "OpenAI"
+          "图片生成/Qwen千问"
         ],
         "parameters": [],
         "requestBody": {
@@ -406,7 +448,7 @@
         "description": " 百炼qwen-image系列图片生成",
         "operationId": "createImage",
         "tags": [
-          "OpenAI"
+          "图片生成/Qwen千问"
         ],
         "parameters": [],
         "requestBody": {
@@ -508,7 +550,7 @@
         "description": "OpenAI 兼容的视频生成接口。\n\n参考文档: https://platform.openai.com/docs/api-reference/videos/create\n",
         "operationId": "createVideo",
         "tags": [
-          "OpenAI"
+          "视频生成/Sora兼容格式"
         ],
         "parameters": [],
         "requestBody": {
@@ -651,7 +693,7 @@
         "description": "OpenAI 兼容的视频任务状态查询接口。\n\n返回视频任务的详细状态信息。\n",
         "operationId": "getVideo",
         "tags": [
-          "OpenAI"
+          "视频生成/Sora兼容格式"
         ],
         "parameters": [
           {
@@ -744,7 +786,7 @@
         "description": "获取已完成视频任务的视频文件内容。\n\n此接口会代理返回视频文件流。\n",
         "operationId": "getVideoContent",
         "tags": [
-          "OpenAI"
+          "视频生成/Sora兼容格式"
         ],
         "parameters": [
           {
@@ -797,7 +839,7 @@
         "description": "使用 Kling 模型从文本描述生成视频。\n\n支持的模型：kling-v1, kling-v1-5 等\n",
         "operationId": "createKlingText2Video",
         "tags": [
-          "OpenAI"
+          "视频生成/Kling格式"
         ],
         "parameters": [],
         "requestBody": {
@@ -855,7 +897,7 @@
         "description": "查询 Kling 文生视频任务的状态和结果。",
         "operationId": "getKlingText2Video",
         "tags": [
-          "OpenAI"
+          "视频生成/Kling格式"
         ],
         "parameters": [
           {
@@ -907,7 +949,7 @@
         "description": "使用 Kling 模型从图片生成视频。\n\n支持通过 image 参数传入图片 URL 或 Base64 编码的图片数据。\n",
         "operationId": "createKlingImage2Video",
         "tags": [
-          "OpenAI"
+          "视频生成/Kling格式"
         ],
         "parameters": [],
         "requestBody": {
@@ -965,7 +1007,7 @@
         "description": "查询 Kling 图生视频任务的状态和结果。",
         "operationId": "getKlingImage2Video",
         "tags": [
-          "OpenAI"
+          "视频生成/Kling格式"
         ],
         "parameters": [
           {
@@ -1017,7 +1059,7 @@
         "description": "即梦官方 API 格式的视频生成接口。\n\n支持通过 Action 参数指定操作类型：\n- `CVSync2AsyncSubmitTask`: 提交视频生成任务\n- `CVSync2AsyncGetResult`: 获取任务结果\n\n需要在查询参数中指定 Action 和 Version。\n",
         "operationId": "createJimengVideo",
         "tags": [
-          "OpenAI"
+          "视频生成/即梦格式"
         ],
         "parameters": [
           {
@@ -1128,7 +1170,7 @@
         "description": "提交视频生成任务，支持文生视频和图生视频。\n\n返回任务 ID，可通过 GET 接口查询任务状态。\n",
         "operationId": "createVideoGeneration",
         "tags": [
-          "OpenAI"
+          "视频生成"
         ],
         "parameters": [],
         "requestBody": {
@@ -1186,7 +1228,7 @@
         "description": "查询视频生成任务的状态和结果。\n\n任务状态：\n- `queued`: 排队中\n- `in_progress`: 生成中\n- `completed`: 已完成\n- `failed`: 失败\n",
         "operationId": "getVideoGeneration",
         "tags": [
-          "OpenAI"
+          "视频生成"
         ],
         "parameters": [
           {
@@ -1238,7 +1280,7 @@
         "description": "Anthropic Claude Messages API 格式的请求。\n需要在请求头中包含 `anthropic-version`。\n",
         "operationId": "createMessage",
         "tags": [
-          "Anthropic"
+          "Claude格式(Messages)"
         ],
         "parameters": [
           {
@@ -1295,12 +1337,12 @@
     },
     "/v1beta/models/{model}:generateContent": {
       "post": {
-        "summary": "Gemini 内容生成",
+        "summary": "Gemini 图片(Nano Banana)",
         "deprecated": false,
-        "description": "使用 Gemini 模型生成文本、图片等内容",
+        "description": "Gemini 图片生成",
         "operationId": "geminiRelayV1Beta",
         "tags": [
-          "Gemini"
+          "Gemini格式"
         ],
         "parameters": [
           {
@@ -1420,12 +1462,12 @@
     },
     "/v1/engines/{model}/embeddings": {
       "post": {
-        "summary": "Gemini 嵌入 (旧格式)",
+        "summary": "Gemini 嵌入(Embeddings)",
         "deprecated": false,
-        "description": "使用 Gemini 模型创建文本嵌入（engines 路径格式）",
+        "description": "使用指定引擎/模型创建嵌入",
         "operationId": "createEngineEmbedding",
         "tags": [
-          "Gemini"
+          "Gemini格式"
         ],
         "parameters": [
           {
@@ -1476,7 +1518,7 @@
         "description": "将文本转换为向量嵌入",
         "operationId": "createEmbedding",
         "tags": [
-          "OpenAI"
+          "OpenAI格式(Embeddings)"
         ],
         "parameters": [],
         "requestBody": {
@@ -1516,7 +1558,7 @@
         "description": "基于给定提示创建文本补全",
         "operationId": "createCompletion",
         "tags": [
-          "OpenAI"
+          "文本补全(Completions)"
         ],
         "parameters": [],
         "requestBody": {
@@ -1556,7 +1598,7 @@
         "description": "将音频转换为文本",
         "operationId": "createTranscription",
         "tags": [
-          "OpenAI"
+          "OpenAI音频(Audio)"
         ],
         "parameters": [],
         "requestBody": {
@@ -1648,7 +1690,7 @@
         "description": "将音频翻译为英文文本",
         "operationId": "createTranslation",
         "tags": [
-          "OpenAI"
+          "OpenAI音频(Audio)"
         ],
         "parameters": [],
         "requestBody": {
@@ -1715,7 +1757,7 @@
         "description": "将文本转换为音频",
         "operationId": "createSpeech",
         "tags": [
-          "OpenAI"
+          "OpenAI音频(Audio)"
         ],
         "parameters": [],
         "requestBody": {
@@ -1756,7 +1798,7 @@
         "description": "根据查询对文档列表进行相关性重排序",
         "operationId": "createRerank",
         "tags": [
-          "OpenAI"
+          "重排序(Rerank)"
         ],
         "parameters": [],
         "requestBody": {
@@ -1796,7 +1838,7 @@
         "description": "检查文本内容是否违反使用政策",
         "operationId": "createModeration",
         "tags": [
-          "OpenAI"
+          "Moderations"
         ],
         "parameters": [],
         "requestBody": {
@@ -1836,7 +1878,7 @@
         "description": "建立 WebSocket 连接用于实时对话。\n\n**注意**: 这是一个 WebSocket 端点，需要使用 WebSocket 协议连接。\n\n连接 URL 示例: `wss://api.example.com/v1/realtime?model=gpt-4o-realtime`\n",
         "operationId": "createRealtimeSession",
         "tags": [
-          "OpenAI"
+          "Realtime"
         ],
         "parameters": [
           {
@@ -2262,898 +2304,6 @@
             "BearerAuth": []
           }
         ]
-      }
-    },
-    "/mj/submit/imagine": {
-      "post": {
-        "operationId": "mjImagine",
-        "summary": "Midjourney 文生图",
-        "description": "提交 Midjourney Imagine 任务，根据 prompt 生成图片",
-        "tags": [
-          "Midjourney"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "prompt": {
-                    "type": "string",
-                    "description": "图片生成提示词"
-                  },
-                  "botType": {
-                    "type": "string",
-                    "description": "机器人类型",
-                    "enum": [
-                      "MID_JOURNEY",
-                      "NIJI_JOURNEY"
-                    ]
-                  },
-                  "notifyHook": {
-                    "type": "string",
-                    "description": "任务完成回调地址"
-                  },
-                  "state": {
-                    "type": "string",
-                    "description": "自定义状态值"
-                  }
-                },
-                "required": [
-                  "prompt"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "任务提交结果"
-          }
-        }
-      }
-    },
-    "/mj/submit/describe": {
-      "post": {
-        "operationId": "mjDescribe",
-        "summary": "Midjourney 图生文",
-        "description": "提交 Midjourney Describe 任务，根据图片生成描述",
-        "tags": [
-          "Midjourney"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "base64Array": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "图片 base64 数组"
-                  },
-                  "notifyHook": {
-                    "type": "string"
-                  },
-                  "state": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "base64Array"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "任务提交结果"
-          }
-        }
-      }
-    },
-    "/mj/submit/blend": {
-      "post": {
-        "operationId": "mjBlend",
-        "summary": "Midjourney 图片混合",
-        "description": "提交 Midjourney Blend 任务，混合多张图片",
-        "tags": [
-          "Midjourney"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "base64Array": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "图片 base64 数组（2-5张）"
-                  },
-                  "notifyHook": {
-                    "type": "string"
-                  },
-                  "state": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "base64Array"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "任务提交结果"
-          }
-        }
-      }
-    },
-    "/mj/submit/change": {
-      "post": {
-        "operationId": "mjChange",
-        "summary": "Midjourney 变换操作",
-        "description": "对已有任务执行 Upscale、Variation 等变换操作",
-        "tags": [
-          "Midjourney"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "taskId": {
-                    "type": "string",
-                    "description": "原任务 ID"
-                  },
-                  "action": {
-                    "type": "string",
-                    "description": "变换动作",
-                    "enum": [
-                      "UPSCALE",
-                      "VARIATION",
-                      "REROLL"
-                    ]
-                  },
-                  "index": {
-                    "type": "integer",
-                    "description": "图片索引 (1-4)"
-                  }
-                },
-                "required": [
-                  "taskId",
-                  "action"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "任务提交结果"
-          }
-        }
-      }
-    },
-    "/mj/submit/simple-change": {
-      "post": {
-        "operationId": "mjSimpleChange",
-        "summary": "Midjourney 简单变换",
-        "description": "通过简单格式提交变换操作，如 \"taskId U1\"",
-        "tags": [
-          "Midjourney"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "content": {
-                    "type": "string",
-                    "description": "变换指令，格式: taskId U1/V2/R 等"
-                  }
-                },
-                "required": [
-                  "content"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "任务提交结果"
-          }
-        }
-      }
-    },
-    "/mj/submit/action": {
-      "post": {
-        "operationId": "mjAction",
-        "summary": "Midjourney 按钮动作",
-        "description": "通过 customId 执行按钮动作（Upscale、Variation、Pan、Zoom 等）",
-        "tags": [
-          "Midjourney"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "customId": {
-                    "type": "string",
-                    "description": "按钮 customId"
-                  },
-                  "taskId": {
-                    "type": "string",
-                    "description": "原任务 ID"
-                  },
-                  "notifyHook": {
-                    "type": "string"
-                  },
-                  "state": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "customId",
-                  "taskId"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "任务提交结果"
-          }
-        }
-      }
-    },
-    "/mj/submit/shorten": {
-      "post": {
-        "operationId": "mjShorten",
-        "summary": "Midjourney 提示词缩短",
-        "description": "提交 Shorten 任务，分析并缩短提示词",
-        "tags": [
-          "Midjourney"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "prompt": {
-                    "type": "string",
-                    "description": "待缩短的提示词"
-                  }
-                },
-                "required": [
-                  "prompt"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "任务提交结果"
-          }
-        }
-      }
-    },
-    "/mj/submit/modal": {
-      "post": {
-        "operationId": "mjModal",
-        "summary": "Midjourney 弹窗提交",
-        "description": "提交 Modal 弹窗操作（如 Custom Zoom 的参数）",
-        "tags": [
-          "Midjourney"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "taskId": {
-                    "type": "string",
-                    "description": "原任务 ID"
-                  },
-                  "prompt": {
-                    "type": "string",
-                    "description": "弹窗输入内容"
-                  }
-                },
-                "required": [
-                  "taskId",
-                  "prompt"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "任务提交结果"
-          }
-        }
-      }
-    },
-    "/mj/submit/edits": {
-      "post": {
-        "operationId": "mjEdits",
-        "summary": "Midjourney 图片编辑",
-        "description": "提交图片编辑任务（Inpaint/局部重绘）",
-        "tags": [
-          "Midjourney"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "taskId": {
-                    "type": "string",
-                    "description": "原任务 ID"
-                  },
-                  "prompt": {
-                    "type": "string",
-                    "description": "编辑提示词"
-                  },
-                  "maskBase64": {
-                    "type": "string",
-                    "description": "蒙版 base64"
-                  }
-                },
-                "required": [
-                  "taskId"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "任务提交结果"
-          }
-        }
-      }
-    },
-    "/mj/submit/video": {
-      "post": {
-        "operationId": "mjVideo",
-        "summary": "Midjourney 视频生成",
-        "description": "提交视频生成任务",
-        "tags": [
-          "Midjourney"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "prompt": {
-                    "type": "string",
-                    "description": "视频生成提示词"
-                  },
-                  "notifyHook": {
-                    "type": "string"
-                  },
-                  "state": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "prompt"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "任务提交结果"
-          }
-        }
-      }
-    },
-    "/mj/submit/upload-discord-images": {
-      "post": {
-        "operationId": "mjUploadImages",
-        "summary": "Midjourney 上传图片",
-        "description": "上传图片到 Discord 以供 Midjourney 使用",
-        "tags": [
-          "Midjourney"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "base64Array": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "图片 base64 数组"
-                  }
-                },
-                "required": [
-                  "base64Array"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "上传结果"
-          }
-        }
-      }
-    },
-    "/mj/task/{id}/fetch": {
-      "get": {
-        "operationId": "mjFetchTask",
-        "summary": "获取 Midjourney 任务状态",
-        "description": "根据任务 ID 查询任务进度和结果",
-        "tags": [
-          "Midjourney"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "任务 ID"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "任务详情"
-          }
-        }
-      }
-    },
-    "/mj/task/{id}/image-seed": {
-      "get": {
-        "operationId": "mjGetImageSeed",
-        "summary": "获取 Midjourney 图片种子",
-        "description": "获取已生成图片的 seed 值",
-        "tags": [
-          "Midjourney"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "任务 ID"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "图片种子信息"
-          }
-        }
-      }
-    },
-    "/mj/task/list-by-condition": {
-      "post": {
-        "operationId": "mjListTasks",
-        "summary": "查询 Midjourney 任务列表",
-        "description": "按条件批量查询任务",
-        "tags": [
-          "Midjourney"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "ids": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "任务 ID 列表"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "任务列表"
-          }
-        }
-      }
-    },
-    "/mj/image/{id}": {
-      "get": {
-        "operationId": "mjGetImage",
-        "summary": "获取 Midjourney 图片",
-        "description": "通过代理获取 Midjourney 生成的图片",
-        "tags": [
-          "Midjourney"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "图片 ID"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "图片内容"
-          }
-        }
-      }
-    },
-    "/mj/insight-face/swap": {
-      "post": {
-        "operationId": "mjSwapFace",
-        "summary": "InsightFace 换脸",
-        "description": "使用 InsightFace 进行人脸替换",
-        "tags": [
-          "Midjourney"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "sourceBase64": {
-                    "type": "string",
-                    "description": "源人脸图片 base64"
-                  },
-                  "targetBase64": {
-                    "type": "string",
-                    "description": "目标图片 base64"
-                  }
-                },
-                "required": [
-                  "sourceBase64",
-                  "targetBase64"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "换脸结果"
-          }
-        }
-      }
-    },
-    "/v1beta/models/{model}:streamGenerateContent": {
-      "post": {
-        "operationId": "geminiStreamGenerateContent",
-        "summary": "Gemini 流式内容生成",
-        "description": "使用 Gemini 模型流式生成文本、图片等内容",
-        "tags": [
-          "Gemini"
-        ],
-        "parameters": [
-          {
-            "name": "model",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Gemini 模型名称，如 gemini-2.0-flash"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "contents": {
-                    "type": "array",
-                    "description": "对话内容",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "role": {
-                          "type": "string",
-                          "enum": [
-                            "user",
-                            "model"
-                          ]
-                        },
-                        "parts": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "text": {
-                                "type": "string"
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  },
-                  "generationConfig": {
-                    "type": "object",
-                    "description": "生成配置",
-                    "properties": {
-                      "temperature": {
-                        "type": "number"
-                      },
-                      "topP": {
-                        "type": "number"
-                      },
-                      "topK": {
-                        "type": "integer"
-                      },
-                      "maxOutputTokens": {
-                        "type": "integer"
-                      },
-                      "candidateCount": {
-                        "type": "integer"
-                      }
-                    }
-                  },
-                  "safetySettings": {
-                    "type": "array",
-                    "description": "安全设置",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "category": {
-                          "type": "string"
-                        },
-                        "threshold": {
-                          "type": "string"
-                        }
-                      }
-                    }
-                  }
-                },
-                "required": [
-                  "contents"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "流式生成结果"
-          }
-        }
-      }
-    },
-    "/v1beta/models/{model}:embedContent": {
-      "post": {
-        "operationId": "geminiEmbedContent",
-        "summary": "Gemini 文本嵌入",
-        "description": "使用 Gemini 模型创建文本嵌入向量",
-        "tags": [
-          "Gemini"
-        ],
-        "parameters": [
-          {
-            "name": "model",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Gemini 嵌入模型名称，如 text-embedding-004"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "content": {
-                    "type": "object",
-                    "description": "待嵌入的内容",
-                    "properties": {
-                      "parts": {
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "properties": {
-                            "text": {
-                              "type": "string"
-                            }
-                          }
-                        }
-                      }
-                    }
-                  },
-                  "taskType": {
-                    "type": "string",
-                    "description": "嵌入任务类型",
-                    "enum": [
-                      "RETRIEVAL_QUERY",
-                      "RETRIEVAL_DOCUMENT",
-                      "SEMANTIC_SIMILARITY",
-                      "CLASSIFICATION",
-                      "CLUSTERING"
-                    ]
-                  },
-                  "title": {
-                    "type": "string",
-                    "description": "文档标题（仅 RETRIEVAL_DOCUMENT 时使用）"
-                  }
-                },
-                "required": [
-                  "content"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "嵌入向量"
-          }
-        }
-      }
-    },
-    "/v1beta/models/{model}:countTokens": {
-      "post": {
-        "operationId": "geminiCountTokens",
-        "summary": "Gemini Token 计数",
-        "description": "计算给定内容的 token 数量",
-        "tags": [
-          "Gemini"
-        ],
-        "parameters": [
-          {
-            "name": "model",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Gemini 模型名称"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "contents": {
-                    "type": "array",
-                    "description": "待计数的内容",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "role": {
-                          "type": "string"
-                        },
-                        "parts": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "text": {
-                                "type": "string"
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                },
-                "required": [
-                  "contents"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Token 计数结果"
-          }
-        }
-      }
-    },
-    "/v1/videos/{video_id}/remix": {
-      "post": {
-        "operationId": "createVideoRemix",
-        "summary": "视频 Remix",
-        "description": "基于已有视频创建 remix 变体",
-        "tags": [
-          "OpenAI"
-        ],
-        "parameters": [
-          {
-            "name": "video_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "原视频任务 ID"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "model": {
-                    "type": "string",
-                    "description": "模型名称"
-                  },
-                  "prompt": {
-                    "type": "string",
-                    "description": "修改提示词"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Remix 任务结果"
-          }
-        }
       }
     }
   },
@@ -4020,9 +3170,9 @@
           }
         }
       },
-      "ResponsesCompactionResponse": {
-        "type": "object",
-        "properties": {
+	      "ResponsesCompactionResponse": {
+	        "type": "object",
+	        "properties": {
           "id": {
             "type": "string"
           },
@@ -4047,44 +3197,44 @@
             "type": "object",
             "properties": {}
           }
-        }
-      },
-      "ResponsesCompactionRequest": {
-        "type": "object",
-        "required": [
-          "model"
-        ],
-        "properties": {
-          "model": {
-            "type": "string"
-          },
-          "input": {
-            "description": "输入内容，可以是字符串或消息数组",
-            "oneOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {}
-                }
-              }
-            ]
-          },
-          "instructions": {
-            "type": "string"
-          },
-          "previous_response_id": {
-            "type": "string"
-          }
-        }
-      },
-      "ResponsesStreamResponse": {
-        "type": "object",
-        "properties": {
-          "type": {
+	        }
+	      },
+	      "ResponsesCompactionRequest": {
+	        "type": "object",
+	        "required": [
+	          "model"
+	        ],
+	        "properties": {
+	          "model": {
+	            "type": "string"
+	          },
+	          "input": {
+	            "description": "输入内容，可以是字符串或消息数组",
+	            "oneOf": [
+	              {
+	                "type": "string"
+	              },
+	              {
+	                "type": "array",
+	                "items": {
+	                  "type": "object",
+	                  "properties": {}
+	                }
+	              }
+	            ]
+	          },
+	          "instructions": {
+	            "type": "string"
+	          },
+	          "previous_response_id": {
+	            "type": "string"
+	          }
+	        }
+	      },
+	      "ResponsesStreamResponse": {
+	        "type": "object",
+	        "properties": {
+	          "type": {
             "type": "string"
           },
           "response": {
@@ -4130,6 +3280,13 @@
                 }
               }
             ]
+          },
+          "cache_control": {
+            "type": "object",
+            "properties": {}
+          },
+          "inference_geo": {
+            "type": "string"
           },
           "max_tokens": {
             "type": "integer",
@@ -4183,7 +3340,8 @@
                     "enum": [
                       "auto",
                       "any",
-                      "tool"
+                      "tool",
+                      "none"
                     ]
                   },
                   "name": {
@@ -4208,6 +3366,36 @@
               }
             }
           },
+          "context_management": {
+            "type": "object",
+            "properties": {}
+          },
+          "output_config": {
+            "type": "object",
+            "properties": {}
+          },
+          "output_format": {
+            "type": "object",
+            "properties": {}
+          },
+          "container": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object",
+                "properties": {}
+              }
+            ]
+          },
+          "mcp_servers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {}
+            }
+          },
           "metadata": {
             "type": "object",
             "properties": {
@@ -4215,6 +3403,20 @@
                 "type": "string"
               }
             }
+          },
+          "speed": {
+            "type": "string",
+            "enum": [
+              "standard",
+              "fast"
+            ]
+          },
+          "service_tier": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "standard_only"
+            ]
           }
         }
       },

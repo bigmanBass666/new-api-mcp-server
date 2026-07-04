@@ -18,7 +18,7 @@ func TestClient_Do_RelayAuth(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := New(srv.URL, "sk-relay-key", "sk-sys-key", 5*time.Second)
+	c := New(srv.URL, "sk-relay-key", "sk-sys-key", "1", 5*time.Second)
 
 	resp, err := c.Do(context.Background(), SourceRelay, "POST", "/v1/chat/completions", nil, nil, []byte(`{}`))
 	if err != nil {
@@ -39,7 +39,7 @@ func TestClient_Do_APIAuth(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := New(srv.URL, "sk-relay", "sk-sys-key", 5*time.Second)
+	c := New(srv.URL, "sk-relay", "sk-sys-key", "1", 5*time.Second)
 
 	resp, err := c.Do(context.Background(), SourceAPI, "GET", "/api/channel/", nil, nil, nil)
 	if err != nil {
@@ -60,7 +60,7 @@ func TestClient_Do_QueryParams(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := New(srv.URL, "sk-key", "", 5*time.Second)
+	c := New(srv.URL, "sk-key", "", "1", 5*time.Second)
 	params := map[string]string{"page": "1", "limit": "10"}
 
 	resp, err := c.Do(context.Background(), SourceRelay, "GET", "/api/items", params, nil, nil)
@@ -82,7 +82,7 @@ func TestClient_Do_HeaderParams(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := New(srv.URL, "sk-key", "", 5*time.Second)
+	c := New(srv.URL, "sk-key", "", "1", 5*time.Second)
 	headers := map[string]string{"x-api-key": "my-key"}
 
 	resp, err := c.Do(context.Background(), SourceRelay, "GET", "/test", nil, headers, nil)
@@ -103,7 +103,7 @@ func TestClient_Do_ReturnsBody(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := New(srv.URL, "sk-key", "", 5*time.Second)
+	c := New(srv.URL, "sk-key", "", "1", 5*time.Second)
 
 	resp, err := c.Do(context.Background(), SourceRelay, "GET", "/test", nil, nil, nil)
 	if err != nil {
@@ -115,4 +115,64 @@ func TestClient_Do_ReturnsBody(t *testing.T) {
 	if string(body) != `{"result":"hello"}` {
 		t.Errorf("body = %q, want %q", string(body), `{"result":"hello"}`)
 	}
+}
+
+func TestClient_Do_NewApiUserHeader(t *testing.T) {
+	var gotNewAPIUser string
+	var gotAuthHeader string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotNewAPIUser = r.Header.Get("New-Api-User")
+		gotAuthHeader = r.Header.Get("Authorization")
+		w.Write([]byte(`{}`))
+	}))
+	defer srv.Close()
+
+	t.Run("SourceAPI sets New-Api-User", func(t *testing.T) {
+		gotNewAPIUser = ""
+		c := New(srv.URL, "sk-relay", "sk-sys-key", "test-user-42", 5*time.Second)
+
+		resp, err := c.Do(context.Background(), SourceAPI, "GET", "/api/channel/", nil, nil, nil)
+		if err != nil {
+			t.Fatalf("Do() error: %v", err)
+		}
+		defer resp.Body.Close()
+
+		if gotNewAPIUser != "test-user-42" {
+			t.Errorf("New-Api-User = %q, want %q", gotNewAPIUser, "test-user-42")
+		}
+	})
+
+	t.Run("SourceRelay does not set New-Api-User", func(t *testing.T) {
+		gotNewAPIUser = ""
+		c := New(srv.URL, "sk-relay", "sk-sys-key", "should-not-appear", 5*time.Second)
+
+		resp, err := c.Do(context.Background(), SourceRelay, "POST", "/v1/chat/completions", nil, nil, nil)
+		if err != nil {
+			t.Fatalf("Do() error: %v", err)
+		}
+		defer resp.Body.Close()
+
+		if gotNewAPIUser != "" {
+			t.Errorf("New-Api-User = %q, want empty for SourceRelay", gotNewAPIUser)
+		}
+	})
+
+	t.Run("Authorization header still set for SourceAPI", func(t *testing.T) {
+		gotAuthHeader = ""
+		gotNewAPIUser = ""
+		c := New(srv.URL, "sk-relay", "sk-sys-key", "test-user", 5*time.Second)
+
+		resp, err := c.Do(context.Background(), SourceAPI, "GET", "/api/channel/", nil, nil, nil)
+		if err != nil {
+			t.Fatalf("Do() error: %v", err)
+		}
+		defer resp.Body.Close()
+
+		if gotNewAPIUser != "test-user" {
+			t.Errorf("New-Api-User = %q, want %q", gotNewAPIUser, "test-user")
+		}
+		if gotAuthHeader != "Bearer sk-sys-key" {
+			t.Errorf("Authorization = %q, want %q", gotAuthHeader, "Bearer sk-sys-key")
+		}
+	})
 }

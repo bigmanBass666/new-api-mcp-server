@@ -116,7 +116,7 @@ All configuration via environment variables:
 | `MCP_TRANSPORT` | `stdio` | Transport mode: `stdio` or `http` |
 | `MCP_HTTP_ADDR` | `:8080` | HTTP listen address (http mode only) |
 | `MCP_API_TOOLS_ENABLED` | `false` | Enable admin tools (requires system key) |
-| `MCP_RELAY_DISABLED_GROUPS` | | Comma-separated tag groups to disable |
+| `MCP_RELAY_ENABLED_GROUPS` | | Comma-separated tag groups to enable (empty = all enabled); set `all` for explicit all-groups mode |
 | `MCP_LOG_LEVEL` | `info` | Log level: `debug`, `info`, `warn`, `error` |
 | `MCP_LOG_FORMAT` | `json` | Log format: `json` or `text` |
 | `MCP_LOG_CONSOLE_ENABLED` | `true` | Console log output (disable when using OTLP) |
@@ -130,7 +130,7 @@ All configuration via environment variables:
 - `NEW_API_KEY` not set → relay tools not registered
 - `NEW_API_SYSTEM_KEY` not set or `MCP_API_TOOLS_ENABLED=false` → admin tools not registered
 - `OTEL_EXPORTER_OTLP_ENDPOINT` not set → tracing uses noop (zero overhead)
-- `MCP_RELAY_DISABLED_GROUPS=未实现,视频生成` → disables tools tagged with these groups
+- `MCP_RELAY_ENABLED_GROUPS=未实现,视频生成` → enables only tools tagged with these groups (whitelist)
 
 ## Observability
 

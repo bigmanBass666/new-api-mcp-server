@@ -1,8 +1,10 @@
 {
   "mcpServers": {
     "new-api": {
-      "type": "http",
-      "url": "https://new-api-mcp-server.dev.bestheme.ac.cn/"
+      "type": "stdio",
+      "command": "wsl.exe",
+      "args": ["bash", "-lc", "/root/bin/new-api-mcp-wrapper.sh"],
+      "env": {}
     }
   }
 }

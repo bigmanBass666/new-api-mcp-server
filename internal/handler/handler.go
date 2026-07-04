@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -47,15 +49,23 @@ func (h *Handler) MakeHandler(def openapi.ToolDef) mcp.ToolHandler {
 		var args map[string]any
 		if req.Params != nil && len(req.Params.Arguments) > 0 {
 			if err := json.Unmarshal(req.Params.Arguments, &args); err != nil {
-				return errorResult(fmt.Sprintf("invalid arguments: %v", err)), nil
+				return errorResult(ErrInvalidParams, fmt.Sprintf("invalid arguments: %v", err)), nil
 			}
 		}
 
-		// Substitute path parameters
+		// Substitute path parameters with URL encoding to prevent injection
 		path := def.Path
 		for _, p := range def.PathParams {
 			if v, ok := args[p.Name]; ok {
-				path = strings.ReplaceAll(path, "{"+p.Name+"}", fmt.Sprintf("%v", v))
+				value := fmt.Sprintf("%v", v)
+				// If the parameter schema specifies type=integer, validate it
+				if schema, ok := p.Schema["type"].(string); ok && schema == "integer" {
+					if _, err := strconv.ParseInt(value, 10, 64); err != nil {
+						return errorResult(ErrInvalidParams, fmt.Sprintf("path param %q must be an integer", p.Name)), nil
+					}
+				}
+				// URL-encode the value to prevent path traversal injection
+				path = strings.ReplaceAll(path, "{"+p.Name+"}", url.PathEscape(value))
 			}
 		}
 
@@ -88,7 +98,7 @@ func (h *Handler) MakeHandler(def openapi.ToolDef) mcp.ToolHandler {
 				var err error
 				body, err = json.Marshal(bodyData)
 				if err != nil {
-					return errorResult(fmt.Sprintf("marshal body: %v", err)), nil
+					return errorResult(ErrInternal, fmt.Sprintf("marshal body: %v", err)), nil
 				}
 			}
 		}
@@ -103,13 +113,13 @@ func (h *Handler) MakeHandler(def openapi.ToolDef) mcp.ToolHandler {
 				"error", err,
 				"duration_ms", time.Since(start).Milliseconds(),
 			)
-			return errorResult(fmt.Sprintf("upstream error: %v", err)), nil
+			return errorResult(ErrUpstreamError, fmt.Sprintf("upstream error: %v", err)), nil
 		}
 		defer resp.Body.Close()
 
 		respBody, err := io.ReadAll(resp.Body)
 		if err != nil {
-			return errorResult(fmt.Sprintf("read response: %v", err)), nil
+			return errorResult(ErrInternal, fmt.Sprintf("read response: %v", err)), nil
 		}
 
 		toolDuration := time.Since(start)
@@ -150,18 +160,24 @@ func (h *Handler) MakeHandler(def openapi.ToolDef) mcp.ToolHandler {
 
 		if isError {
 			result.IsError = true
+			// Choose error code based on status code
+			code := ErrUpstreamError
+			switch {
+			case resp.StatusCode == 400:
+				code = ErrInvalidParams
+			case resp.StatusCode == 401 || resp.StatusCode == 403:
+				code = ErrUpstreamAuth
+			case resp.StatusCode == 404:
+				code = ErrUpstreamNotFound
+			}
+			te := ToolError{Code: code, Message: text, StatusCode: resp.StatusCode}
+			errorData, _ := json.Marshal(te)
+			result.Content = []mcp.Content{
+				&mcp.TextContent{Text: string(errorData)},
+			}
 			span.SetAttributes(attribute.Int("http.status_code", resp.StatusCode))
 		}
 
 		return result, nil
-	}
-}
-
-func errorResult(msg string) *mcp.CallToolResult {
-	return &mcp.CallToolResult{
-		IsError: true,
-		Content: []mcp.Content{
-			&mcp.TextContent{Text: msg},
-		},
 	}
 }

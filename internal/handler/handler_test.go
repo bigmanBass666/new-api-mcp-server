@@ -26,7 +26,7 @@ func TestHandle_SimpleGET(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := client.New(srv.URL, "sk-key", "", 5*time.Second)
+	c := client.New(srv.URL, "sk-key", "", "", 5*time.Second)
 	def := openapi.ToolDef{
 		Name:   "listItems",
 		Method: "GET",
@@ -68,7 +68,7 @@ func TestHandle_PathParams(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := client.New(srv.URL, "sk-key", "", 5*time.Second)
+	c := client.New(srv.URL, "sk-key", "", "", 5*time.Second)
 	def := openapi.ToolDef{
 		Name:   "getItem",
 		Method: "GET",
@@ -104,7 +104,7 @@ func TestHandle_QueryParams(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := client.New(srv.URL, "sk-key", "", 5*time.Second)
+	c := client.New(srv.URL, "sk-key", "", "", 5*time.Second)
 	def := openapi.ToolDef{
 		Name:   "listItems",
 		Method: "GET",
@@ -141,7 +141,7 @@ func TestHandle_RequestBody(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := client.New(srv.URL, "sk-key", "", 5*time.Second)
+	c := client.New(srv.URL, "sk-key", "", "", 5*time.Second)
 	def := openapi.ToolDef{
 		Name:    "createItem",
 		Method:  "POST",
@@ -173,7 +173,7 @@ func TestHandle_UpstreamError(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := client.New(srv.URL, "sk-key", "", 5*time.Second)
+	c := client.New(srv.URL, "sk-key", "", "", 5*time.Second)
 	def := openapi.ToolDef{
 		Name:   "getItem",
 		Method: "GET",
@@ -193,6 +193,16 @@ func TestHandle_UpstreamError(t *testing.T) {
 	if !result.IsError {
 		t.Error("expected IsError = true for non-2xx response")
 	}
+	// Verify structured error contains code field
+	if len(result.Content) > 0 {
+		text := result.Content[0].(*mcp.TextContent).Text
+		var errData map[string]any
+		if err := json.Unmarshal([]byte(text), &errData); err == nil {
+			if code, ok := errData["code"]; !ok || code == "" {
+				t.Error("expected error to contain 'code' field")
+			}
+		}
+	}
 }
 
 func TestHandle_NonJSONResponse(t *testing.T) {
@@ -202,7 +212,7 @@ func TestHandle_NonJSONResponse(t *testing.T) {
 	}))
 	defer srv.Close()
 
-	c := client.New(srv.URL, "sk-key", "", 5*time.Second)
+	c := client.New(srv.URL, "sk-key", "", "", 5*time.Second)
 	def := openapi.ToolDef{
 		Name:   "getImage",
 		Method: "GET",

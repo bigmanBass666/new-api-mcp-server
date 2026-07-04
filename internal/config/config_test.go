@@ -117,3 +117,52 @@ func TestLoad_FullConfig(t *testing.T) {
 		t.Errorf("MetricsPath = %q, want %q", cfg.MetricsPath, "/prom")
 	}
 }
+
+func TestLoad_InvalidBaseURL(t *testing.T) {
+	t.Setenv("NEW_API_BASE_URL", "http://")
+	t.Setenv("NEW_API_KEY", "sk-relay")
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("Load() expected error for invalid base URL")
+	}
+}
+
+func TestLoad_InvalidTransport(t *testing.T) {
+	t.Setenv("NEW_API_BASE_URL", "https://api.example.com")
+	t.Setenv("MCP_TRANSPORT", "grpc")
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("Load() expected error for unsupported transport")
+	}
+}
+
+func TestLoad_TimeoutTooLow(t *testing.T) {
+	t.Setenv("NEW_API_BASE_URL", "https://api.example.com")
+	t.Setenv("NEW_API_TIMEOUT", "5ms")
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("Load() expected error for timeout too low")
+	}
+}
+
+func TestLoad_ValidConfig(t *testing.T) {
+	t.Setenv("NEW_API_BASE_URL", "https://api.example.com")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+
+	if cfg.RateLimitRPS != 0 {
+		t.Errorf("RateLimitRPS = %d, want 0", cfg.RateLimitRPS)
+	}
+	if cfg.RateLimitBurst != 0 {
+		t.Errorf("RateLimitBurst = %d, want 0", cfg.RateLimitBurst)
+	}
+	if cfg.ShutdownTimeout != 15*time.Second {
+		t.Errorf("ShutdownTimeout = %v, want %v", cfg.ShutdownTimeout, 15*time.Second)
+	}
+}

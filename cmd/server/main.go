@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"log/slog"
@@ -14,6 +15,8 @@ import (
 	"github.com/QuantumNous/new-api-mcp-server/internal/client"
 	"github.com/QuantumNous/new-api-mcp-server/internal/config"
 	"github.com/QuantumNous/new-api-mcp-server/internal/handler"
+	"github.com/QuantumNous/new-api-mcp-server/internal/hightools"
+	"github.com/QuantumNous/new-api-mcp-server/internal/middleware"
 	"github.com/QuantumNous/new-api-mcp-server/internal/observability"
 	openapipkg "github.com/QuantumNous/new-api-mcp-server/internal/openapi"
 	"github.com/QuantumNous/new-api-mcp-server/internal/registry"
@@ -66,7 +69,7 @@ func run() error {
 		}
 	}()
 
-	relayClient := client.New(cfg.BaseURL, cfg.APIKey, cfg.SystemKey, cfg.Timeout)
+	relayClient := client.New(cfg.BaseURL, cfg.APIKey, cfg.SystemKey, cfg.UserID, cfg.Timeout)
 
 	server := mcp.NewServer(&mcp.Implementation{
 		Name:    "new-api-mcp-server",
@@ -118,6 +121,20 @@ func run() error {
 		slog.Info("API tools disabled")
 	}
 
+	// Register high-level tools
+	if cfg.SystemKey != "" && cfg.APIToolsEnabled {
+		highDefs := hightools.RegisterAll(relayClient, metrics)
+		for _, def := range highDefs {
+			tool := &mcp.Tool{
+				Name:        def.Name,
+				Description: def.Description,
+				InputSchema: def.InputSchema,
+			}
+			server.AddTool(tool, def.Handler)
+		}
+		slog.Info("registered high-level tools", "count", len(highDefs))
+	}
+
 	// Graceful shutdown
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
@@ -128,7 +145,7 @@ func run() error {
 
 		cancel()
 
-		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
 		defer shutdownCancel()
 
 		if err := metricsServer.Shutdown(shutdownCtx); err != nil {
@@ -141,22 +158,41 @@ func run() error {
 	// Run transport
 	switch cfg.Transport {
 	case "http":
-		slog.Info("starting HTTP transport", "addr", cfg.HTTPAddr, "auth_enabled", cfg.HTTPAuthToken != "")
+		slog.Info("starting HTTP transport",
+			"addr", cfg.HTTPAddr,
+			"auth_enabled", cfg.HTTPAuthToken != "",
+			"cors_origins", cfg.HTTPCORSOrigins,
+			"max_body_size", cfg.HTTPMaxBodySize,
+			"rate_limit_rps", cfg.RateLimitRPS,
+			"rate_limit_burst", cfg.RateLimitBurst,
+		)
 		mcpHandler := mcp.NewStreamableHTTPHandler(
 			func(r *http.Request) *mcp.Server { return server },
 			nil,
 		)
 		var httpHandler http.Handler = mcpHandler
 		if cfg.HTTPAuthToken != "" {
-			httpHandler = authMiddleware(cfg.HTTPAuthToken, mcpHandler)
+			httpHandler = authMiddleware(cfg.HTTPAuthToken, httpHandler)
 		}
+		httpHandler = corsMiddleware(cfg.HTTPCORSOrigins, httpHandler)
+		httpHandler = maxBodyMiddleware(cfg.HTTPMaxBodySize, httpHandler)
+		if cfg.RateLimitRPS > 0 {
+			httpHandler = middleware.NewRateLimiter(cfg.RateLimitRPS, cfg.RateLimitBurst)(httpHandler)
+			slog.Info("rate limiting enabled", "rps", cfg.RateLimitRPS, "burst", cfg.RateLimitBurst)
+		}
+		// Health check is outermost — checked before auth/rate-limit
+		httpHandler = healthCheckMiddleware(cfg.BaseURL, httpHandler)
 		httpServer := &http.Server{
 			Addr:    cfg.HTTPAddr,
 			Handler: httpHandler,
 		}
 		go func() {
 			<-ctx.Done()
-			httpServer.Shutdown(context.Background())
+			shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
+			defer shutdownCancel()
+			if err := httpServer.Shutdown(shutdownCtx); err != nil {
+				slog.Error("http server shutdown failed", "error", err)
+			}
 		}()
 		if err := httpServer.ListenAndServe(); err != http.ErrServerClosed {
 			return fmt.Errorf("http server: %w", err)
@@ -180,5 +216,67 @@ func authMiddleware(token string, next http.Handler) http.Handler {
 			return
 		}
 		next.ServeHTTP(w, r)
+	})
+}
+
+// corsMiddleware adds CORS headers to HTTP responses and handles preflight OPTIONS requests.
+func corsMiddleware(origins string, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", origins)
+		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// maxBodyMiddleware limits the size of incoming request bodies to prevent abuse.
+func maxBodyMiddleware(maxBytes int64, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, maxBytes)
+		next.ServeHTTP(w, r)
+	})
+}
+
+// healthCheckMiddleware handles /healthz and /readyz endpoints for container
+// orchestration. It wraps the MCP handler, allowing health checks to bypass
+// auth and rate limiting.
+func healthCheckMiddleware(baseURL string, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/healthz":
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+			return
+		case "/readyz":
+			w.Header().Set("Content-Type", "application/json")
+			ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+			defer cancel()
+			req, err := http.NewRequestWithContext(ctx, http.MethodHead, baseURL, nil)
+			if err != nil {
+				w.WriteHeader(http.StatusServiceUnavailable)
+				json.NewEncoder(w).Encode(map[string]string{"status": "unhealthy"})
+				return
+			}
+			resp, err := http.DefaultClient.Do(req)
+			if err != nil || resp.StatusCode >= 500 {
+				w.WriteHeader(http.StatusServiceUnavailable)
+				json.NewEncoder(w).Encode(map[string]string{"status": "unhealthy"})
+				if resp != nil {
+					resp.Body.Close()
+				}
+				return
+			}
+			resp.Body.Close()
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+			return
+		default:
+			next.ServeHTTP(w, r)
+		}
 	})
 }

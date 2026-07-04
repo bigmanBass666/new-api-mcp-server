@@ -1,6 +1,10 @@
 .PHONY: build test lint run clean
 
 BINARY=new-api-mcp-server
+# Windows needs .exe extension for MCP servers to spawn correctly
+ifeq ($(OS),Windows_NT)
+BINARY:=new-api-mcp-server.exe
+endif
 VERSION?=dev
 LDFLAGS=-ldflags "-X main.version=$(VERSION)"
 

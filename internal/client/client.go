@@ -26,14 +26,16 @@ type Client struct {
 	baseURL    string
 	relayKey   string
 	systemKey  string
+	userID     string
 	httpClient *http.Client
 }
 
-func New(baseURL, relayKey, systemKey string, timeout time.Duration) *Client {
+func New(baseURL, relayKey, systemKey, userID string, timeout time.Duration) *Client {
 	return &Client{
 		baseURL:   baseURL,
 		relayKey:  relayKey,
 		systemKey: systemKey,
+		userID:    userID,
 		httpClient: &http.Client{
 			Timeout: timeout,
 		},
@@ -68,6 +70,11 @@ func (c *Client) Do(ctx context.Context, source Source, method, path string, que
 	}
 	if key != "" {
 		req.Header.Set("Authorization", "Bearer "+key)
+	}
+
+	// Set New-Api-User header for API source requests
+	if source == SourceAPI && c.userID != "" {
+		req.Header.Set("New-Api-User", c.userID)
 	}
 
 	if body != nil {

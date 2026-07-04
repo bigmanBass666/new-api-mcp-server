@@ -2,7 +2,9 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -30,6 +32,13 @@ type Config struct {
 
 	MetricsAddr string
 	MetricsPath string
+
+	UserID             string
+	HTTPCORSOrigins    string
+	HTTPMaxBodySize    int64
+	RateLimitRPS      int           // 速率限制 RPS，0=不限速
+	RateLimitBurst    int           // 速率限制 Burst
+	ShutdownTimeout   time.Duration // 优雅关闭超时时间
 }
 
 func Load() (*Config, error) {
@@ -54,6 +63,12 @@ func Load() (*Config, error) {
 		ServiceName:       envOrDefault("OTEL_SERVICE_NAME", "new-api-mcp-server"),
 		MetricsAddr:       envOrDefault("MCP_METRICS_ADDR", ":9090"),
 		MetricsPath:       envOrDefault("MCP_METRICS_PATH", "/metrics"),
+		UserID:            envOrDefault("MCP_USER_ID", "1"),
+		HTTPCORSOrigins:   envOrDefault("MCP_HTTP_CORS_ORIGINS", "*"),
+		HTTPMaxBodySize:   10 * 1024 * 1024, // 10MB default
+		RateLimitRPS:      envOrDefaultInt("MCP_RATE_LIMIT_RPS", 0),
+		RateLimitBurst:    envOrDefaultInt("MCP_RATE_LIMIT_BURST", 0),
+		ShutdownTimeout:   parseDuration("MCP_SHUTDOWN_TIMEOUT", 15*time.Second),
 	}
 
 	if groups := os.Getenv("MCP_RELAY_ENABLED_GROUPS"); groups != "" {
@@ -64,12 +79,38 @@ func Load() (*Config, error) {
 		}
 	}
 
+	// Validate BaseURL format
+	if u, err := url.Parse(cfg.BaseURL); err != nil || u.Host == "" {
+		return nil, fmt.Errorf("invalid base URL: %s", cfg.BaseURL)
+	}
+
+	// Validate transport
+	if cfg.Transport != "stdio" && cfg.Transport != "http" {
+		return nil, fmt.Errorf("unsupported transport: %s (must be 'stdio' or 'http')", cfg.Transport)
+	}
+
+	// Validate timeout minimum
+	if cfg.Timeout < time.Second {
+		return nil, fmt.Errorf("timeout too low: %v (minimum 1s)", cfg.Timeout)
+	}
+
 	return cfg, nil
 }
 
 func envOrDefault(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
+	}
+	return fallback
+}
+
+func envOrDefaultInt(key string, fallback int) int {
+	if v := os.Getenv(key); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil {
+			return fallback
+		}
+		return n
 	}
 	return fallback
 }
