@@ -1,0 +1,32 @@
+# Git
+.git
+.gitignore
+
+# Build artifacts
+bin/
+server
+server.exe
+
+# Environment
+.env
+.env.local
+.env.example
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp
+tmp/
+wget-log
+__pycache__/
+*.pyc
+
+# Test sandbox (not needed for production image)
+test-sandbox/
+.agents/
+.claude/

@@ -5,3 +5,11 @@ server.exe
 tmp/
 wget-log
 test-sandbox/
+data/
+
+# Environment files
+.env
+.env.local
+
+# Docker artifacts
+.dockerignore
