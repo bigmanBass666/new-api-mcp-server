@@ -1,4 +1,4 @@
-.PHONY: build test lint run clean
+.PHONY: build test lint run clean docker-build docker-up docker-down
 
 BINARY=new-api-mcp-server
 # Windows needs .exe extension for MCP servers to spawn correctly
@@ -22,3 +22,20 @@ run:
 
 clean:
 	rm -rf bin/
+
+# Docker targets
+docker-build:
+	docker build -t new-api-mcp-server:$(VERSION) .
+
+docker-up:
+	docker compose up -d
+
+docker-down:
+	docker compose down
+
+docker-logs:
+	docker compose logs -f
+
+# E2E test targets
+test-e2e:
+	@if [ -f scripts/test-e2e.sh ]; then bash scripts/test-e2e.sh; else echo "scripts/test-e2e.sh not found — run 'make build' first"; fi
