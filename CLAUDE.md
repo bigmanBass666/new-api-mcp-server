@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+> 本地部署的New API在这里: D:\Test\installations\new-api, 是在WSL2里面的docker部署.
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## What This Project Is
@@ -38,4 +40,14 @@ Integration test: `go test -tags=integration -v -run TestIntegration`
 - All config via environment variables
 - Tool names are sanitized to `[a-zA-Z0-9_\-.]` per MCP SDK requirement
 - Non-JSON upstream responses are base64 encoded
-- Metrics use OpenAPI path templates (e.g., `/api/channel/{id}`) not resolved paths
+
+## Git Workflow
+
+本项目为单人开发 + CI（Tekton），适用"宽松 GitHub Flow"：
+
+- **小改动、当天能完成** → 直接在 `main` 提交
+- **改动涉及多个模块、可能破坏现有功能、开发周期超一天** → 创建 `feature/xxx` 分支
+- **任何提交前确保 `make test` 通过**（已有 Tekton CI，但本地先跑一遍）
+- **原子提交**：一个 commit 只做一件事，参考全局 `git_rules.md`
+- **提交信息格式**：`<type>: <简短描述>`（feat/fix/refactor/chore/docs）
+- **禁止**：攒多个改动一次性提交、提交信息写"更新代码"之类废话
