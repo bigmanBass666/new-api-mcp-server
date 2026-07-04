@@ -68,74 +68,106 @@
     },
     {
       "name": "未实现/Files"
+    },
+    {
+      "name": "Midjourney"
     }
   ],
   "paths": {
-    "/v1/models": {
-      "get": {
-        "summary": "获取模型列表",
+    "/jimeng/": {
+      "post": {
+        "summary": "即梦视频生成",
         "deprecated": false,
-        "description": "获取当前可用的模型列表。\n\n根据请求头自动识别返回格式：\n- 包含 `x-api-key` 和 `anthropic-version` 头时返回 Anthropic 格式\n- 包含 `x-goog-api-key` 头或 `key` 查询参数时返回 Gemini 格式\n- 其他情况返回 OpenAI 格式\n",
-        "operationId": "listModels",
+        "description": "即梦官方 API 格式的视频生成接口。\n\n支持通过 Action 参数指定操作类型：\n- `CVSync2AsyncSubmitTask`: 提交视频生成任务\n- `CVSync2AsyncGetResult`: 获取任务结果\n\n需要在查询参数中指定 Action 和 Version。\n",
+        "operationId": "createJimengVideo",
         "tags": [
-          "获取模型列表"
+          "视频生成/即梦格式"
         ],
         "parameters": [
           {
-            "name": "key",
+            "name": "Action",
             "in": "query",
-            "description": "Google API Key (用于 Gemini 格式)",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "x-api-key",
-            "in": "header",
-            "description": "Anthropic API Key (用于 Claude 格式)",
-            "required": false,
-            "example": "",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "anthropic-version",
-            "in": "header",
-            "description": "Anthropic API 版本",
-            "required": false,
-            "example": "",
+            "description": "API 操作类型",
+            "required": true,
             "schema": {
               "type": "string",
-              "example": "2023-06-01"
+              "enum": [
+                "CVSync2AsyncSubmitTask",
+                "CVSync2AsyncGetResult"
+              ]
             }
           },
           {
-            "name": "x-goog-api-key",
-            "in": "header",
-            "description": "Google API Key (用于 Gemini 格式)",
-            "required": false,
-            "example": "",
+            "name": "Version",
+            "in": "query",
+            "description": "API 版本",
+            "required": true,
+            "example": "2022-08-31",
             "schema": {
               "type": "string"
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "即梦官方 API 请求格式",
+                "properties": {
+                  "req_key": {
+                    "type": "string",
+                    "description": "请求类型标识"
+                  },
+                  "prompt": {
+                    "type": "string",
+                    "description": "文本描述"
+                  },
+                  "binary_data_base64": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Base64 编码的图片数据"
+                  }
+                }
+              },
+              "example": {
+                "req_key": "jimeng_video_generation",
+                "prompt": "一只猫在弹钢琴"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "成功获取模型列表",
+            "description": "成功处理请求",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ModelsResponse"
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "description": "响应码"
+                    },
+                    "message": {
+                      "type": "string",
+                      "description": "响应消息"
+                    },
+                    "data": {
+                      "type": "object",
+                      "description": "响应数据",
+                      "properties": {}
+                    }
+                  }
                 }
               }
             },
             "headers": {}
           },
-          "401": {
-            "description": "认证失败",
+          "400": {
+            "description": "请求参数错误",
             "content": {
               "application/json": {
                 "schema": {
@@ -153,23 +185,1018 @@
         ]
       }
     },
-    "/v1beta/models": {
-      "get": {
-        "summary": "Gemini 格式获取",
+    "/kling/v1/videos/image2video": {
+      "post": {
+        "summary": "Kling 图生视频",
         "deprecated": false,
-        "description": "以 Gemini API 格式返回可用模型列表",
-        "operationId": "listModelsGemini",
+        "description": "使用 Kling 模型从图片生成视频。\n\n支持通过 image 参数传入图片 URL 或 Base64 编码的图片数据。\n",
+        "operationId": "createKlingImage2Video",
         "tags": [
-          "获取模型列表"
+          "视频生成/Kling格式"
         ],
         "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VideoRequest"
+              },
+              "example": {
+                "model": "kling-v1",
+                "prompt": "人物转身走开",
+                "image": "https://example.com/image.jpg",
+                "duration": 5,
+                "width": 1280,
+                "height": 720
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "成功获取模型列表",
+            "description": "成功创建视频生成任务",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GeminiModelsResponse"
+                  "$ref": "#/components/schemas/VideoResponse"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "400": {
+            "description": "请求参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/kling/v1/videos/image2video/{task_id}": {
+      "get": {
+        "summary": "获取 Kling 图生视频任务状态",
+        "deprecated": false,
+        "description": "查询 Kling 图生视频任务的状态和结果。",
+        "operationId": "getKlingImage2Video",
+        "tags": [
+          "视频生成/Kling格式"
+        ],
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "description": "任务 ID",
+            "required": true,
+            "example": "task-abc123",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取任务状态",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VideoTaskResponse"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "404": {
+            "description": "任务不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/kling/v1/videos/text2video": {
+      "post": {
+        "summary": "Kling 文生视频",
+        "deprecated": false,
+        "description": "使用 Kling 模型从文本描述生成视频。\n\n支持的模型：kling-v1, kling-v1-5 等\n",
+        "operationId": "createKlingText2Video",
+        "tags": [
+          "视频生成/Kling格式"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VideoRequest"
+              },
+              "example": {
+                "model": "kling-v1",
+                "prompt": "宇航员站起身走了",
+                "duration": 5,
+                "width": 1280,
+                "height": 720,
+                "fps": 30
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功创建视频生成任务",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VideoResponse"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "400": {
+            "description": "请求参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/kling/v1/videos/text2video/{task_id}": {
+      "get": {
+        "summary": "获取 Kling 文生视频任务状态",
+        "deprecated": false,
+        "description": "查询 Kling 文生视频任务的状态和结果。",
+        "operationId": "getKlingText2Video",
+        "tags": [
+          "视频生成/Kling格式"
+        ],
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "description": "任务 ID",
+            "required": true,
+            "example": "task-abc123",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取任务状态",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VideoTaskResponse"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "404": {
+            "description": "任务不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/mj/image/{id}": {
+      "get": {
+        "operationId": "mjGetImage",
+        "summary": "获取 Midjourney 图片",
+        "description": "通过代理获取 Midjourney 生成的图片",
+        "tags": [
+          "Midjourney"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "图片 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "图片内容"
+          }
+        }
+      }
+    },
+    "/mj/insight-face/swap": {
+      "post": {
+        "operationId": "mjSwapFace",
+        "summary": "InsightFace 换脸",
+        "description": "使用 InsightFace 进行人脸替换",
+        "tags": [
+          "Midjourney"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sourceBase64": {
+                    "type": "string",
+                    "description": "源人脸图片 base64"
+                  },
+                  "targetBase64": {
+                    "type": "string",
+                    "description": "目标图片 base64"
+                  }
+                },
+                "required": [
+                  "sourceBase64",
+                  "targetBase64"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "换脸结果"
+          }
+        }
+      }
+    },
+    "/mj/submit/action": {
+      "post": {
+        "operationId": "mjAction",
+        "summary": "Midjourney 按钮动作",
+        "description": "通过 customId 执行按钮动作（Upscale、Variation、Pan、Zoom 等）",
+        "tags": [
+          "Midjourney"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "customId": {
+                    "type": "string",
+                    "description": "按钮 customId"
+                  },
+                  "taskId": {
+                    "type": "string",
+                    "description": "原任务 ID"
+                  },
+                  "notifyHook": {
+                    "type": "string"
+                  },
+                  "state": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "customId",
+                  "taskId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "任务提交结果"
+          }
+        }
+      }
+    },
+    "/mj/submit/blend": {
+      "post": {
+        "operationId": "mjBlend",
+        "summary": "Midjourney 图片混合",
+        "description": "提交 Midjourney Blend 任务，混合多张图片",
+        "tags": [
+          "Midjourney"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "base64Array": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "图片 base64 数组（2-5张）"
+                  },
+                  "notifyHook": {
+                    "type": "string"
+                  },
+                  "state": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "base64Array"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "任务提交结果"
+          }
+        }
+      }
+    },
+    "/mj/submit/change": {
+      "post": {
+        "operationId": "mjChange",
+        "summary": "Midjourney 变换操作",
+        "description": "对已有任务执行 Upscale、Variation 等变换操作",
+        "tags": [
+          "Midjourney"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "taskId": {
+                    "type": "string",
+                    "description": "原任务 ID"
+                  },
+                  "action": {
+                    "type": "string",
+                    "description": "变换动作",
+                    "enum": [
+                      "UPSCALE",
+                      "VARIATION",
+                      "REROLL"
+                    ]
+                  },
+                  "index": {
+                    "type": "integer",
+                    "description": "图片索引 (1-4)"
+                  }
+                },
+                "required": [
+                  "taskId",
+                  "action"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "任务提交结果"
+          }
+        }
+      }
+    },
+    "/mj/submit/describe": {
+      "post": {
+        "operationId": "mjDescribe",
+        "summary": "Midjourney 图生文",
+        "description": "提交 Midjourney Describe 任务，根据图片生成描述",
+        "tags": [
+          "Midjourney"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "base64Array": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "图片 base64 数组"
+                  },
+                  "notifyHook": {
+                    "type": "string"
+                  },
+                  "state": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "base64Array"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "任务提交结果"
+          }
+        }
+      }
+    },
+    "/mj/submit/edits": {
+      "post": {
+        "operationId": "mjEdits",
+        "summary": "Midjourney 图片编辑",
+        "description": "提交图片编辑任务（Inpaint/局部重绘）",
+        "tags": [
+          "Midjourney"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "taskId": {
+                    "type": "string",
+                    "description": "原任务 ID"
+                  },
+                  "prompt": {
+                    "type": "string",
+                    "description": "编辑提示词"
+                  },
+                  "maskBase64": {
+                    "type": "string",
+                    "description": "蒙版 base64"
+                  }
+                },
+                "required": [
+                  "taskId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "任务提交结果"
+          }
+        }
+      }
+    },
+    "/mj/submit/imagine": {
+      "post": {
+        "operationId": "mjImagine",
+        "summary": "Midjourney 文生图",
+        "description": "提交 Midjourney Imagine 任务，根据 prompt 生成图片",
+        "tags": [
+          "Midjourney"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "description": "图片生成提示词"
+                  },
+                  "botType": {
+                    "type": "string",
+                    "description": "机器人类型",
+                    "enum": [
+                      "MID_JOURNEY",
+                      "NIJI_JOURNEY"
+                    ]
+                  },
+                  "notifyHook": {
+                    "type": "string",
+                    "description": "任务完成回调地址"
+                  },
+                  "state": {
+                    "type": "string",
+                    "description": "自定义状态值"
+                  }
+                },
+                "required": [
+                  "prompt"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "任务提交结果"
+          }
+        }
+      }
+    },
+    "/mj/submit/modal": {
+      "post": {
+        "operationId": "mjModal",
+        "summary": "Midjourney 弹窗提交",
+        "description": "提交 Modal 弹窗操作（如 Custom Zoom 的参数）",
+        "tags": [
+          "Midjourney"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "taskId": {
+                    "type": "string",
+                    "description": "原任务 ID"
+                  },
+                  "prompt": {
+                    "type": "string",
+                    "description": "弹窗输入内容"
+                  }
+                },
+                "required": [
+                  "taskId",
+                  "prompt"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "任务提交结果"
+          }
+        }
+      }
+    },
+    "/mj/submit/shorten": {
+      "post": {
+        "operationId": "mjShorten",
+        "summary": "Midjourney 提示词缩短",
+        "description": "提交 Shorten 任务，分析并缩短提示词",
+        "tags": [
+          "Midjourney"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "description": "待缩短的提示词"
+                  }
+                },
+                "required": [
+                  "prompt"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "任务提交结果"
+          }
+        }
+      }
+    },
+    "/mj/submit/simple-change": {
+      "post": {
+        "operationId": "mjSimpleChange",
+        "summary": "Midjourney 简单变换",
+        "description": "通过简单格式提交变换操作，如 \"taskId U1\"",
+        "tags": [
+          "Midjourney"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "type": "string",
+                    "description": "变换指令，格式: taskId U1/V2/R 等"
+                  }
+                },
+                "required": [
+                  "content"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "任务提交结果"
+          }
+        }
+      }
+    },
+    "/mj/submit/upload-discord-images": {
+      "post": {
+        "operationId": "mjUploadImages",
+        "summary": "Midjourney 上传图片",
+        "description": "上传图片到 Discord 以供 Midjourney 使用",
+        "tags": [
+          "Midjourney"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "base64Array": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "图片 base64 数组"
+                  }
+                },
+                "required": [
+                  "base64Array"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "上传结果"
+          }
+        }
+      }
+    },
+    "/mj/submit/video": {
+      "post": {
+        "operationId": "mjVideo",
+        "summary": "Midjourney 视频生成",
+        "description": "提交视频生成任务",
+        "tags": [
+          "Midjourney"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "prompt": {
+                    "type": "string",
+                    "description": "视频生成提示词"
+                  },
+                  "notifyHook": {
+                    "type": "string"
+                  },
+                  "state": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "prompt"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "任务提交结果"
+          }
+        }
+      }
+    },
+    "/mj/task/list-by-condition": {
+      "post": {
+        "operationId": "mjListTasks",
+        "summary": "查询 Midjourney 任务列表",
+        "description": "按条件批量查询任务",
+        "tags": [
+          "Midjourney"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "任务 ID 列表"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "任务列表"
+          }
+        }
+      }
+    },
+    "/mj/task/{id}/fetch": {
+      "get": {
+        "operationId": "mjFetchTask",
+        "summary": "获取 Midjourney 任务状态",
+        "description": "根据任务 ID 查询任务进度和结果",
+        "tags": [
+          "Midjourney"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "任务 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "任务详情"
+          }
+        }
+      }
+    },
+    "/mj/task/{id}/image-seed": {
+      "get": {
+        "operationId": "mjGetImageSeed",
+        "summary": "获取 Midjourney 图片种子",
+        "description": "获取已生成图片的 seed 值",
+        "tags": [
+          "Midjourney"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "任务 ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "图片种子信息"
+          }
+        }
+      }
+    },
+    "/v1/audio/speech": {
+      "post": {
+        "summary": "文本转语音",
+        "deprecated": false,
+        "description": "将文本转换为音频",
+        "operationId": "createSpeech",
+        "tags": [
+          "OpenAI音频(Audio)"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpeechRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "成功生成音频",
+            "content": {
+              "audio/mpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/audio/transcriptions": {
+      "post": {
+        "summary": "音频转录",
+        "deprecated": false,
+        "description": "将音频转换为文本",
+        "operationId": "createTranscription",
+        "tags": [
+          "OpenAI音频(Audio)"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "音频文件",
+                    "example": ""
+                  },
+                  "model": {
+                    "type": "string",
+                    "example": "whisper-1"
+                  },
+                  "language": {
+                    "type": "string",
+                    "description": "ISO-639-1 语言代码",
+                    "example": ""
+                  },
+                  "prompt": {
+                    "type": "string",
+                    "example": ""
+                  },
+                  "response_format": {
+                    "type": "string",
+                    "enum": [
+                      "json",
+                      "text",
+                      "srt",
+                      "verbose_json",
+                      "vtt"
+                    ],
+                    "default": "json",
+                    "example": "json"
+                  },
+                  "temperature": {
+                    "type": "number",
+                    "example": 0
+                  },
+                  "timestamp_granularities": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "word",
+                        "segment"
+                      ]
+                    },
+                    "example": ""
+                  }
+                },
+                "required": [
+                  "file",
+                  "model"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "成功转录",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudioTranscriptionResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/audio/translations": {
+      "post": {
+        "summary": "音频翻译",
+        "deprecated": false,
+        "description": "将音频翻译为英文文本",
+        "operationId": "createTranslation",
+        "tags": [
+          "OpenAI音频(Audio)"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "example": ""
+                  },
+                  "model": {
+                    "type": "string",
+                    "example": ""
+                  },
+                  "prompt": {
+                    "type": "string",
+                    "example": ""
+                  },
+                  "response_format": {
+                    "type": "string",
+                    "example": ""
+                  },
+                  "temperature": {
+                    "type": "number",
+                    "example": 0
+                  }
+                },
+                "required": [
+                  "file",
+                  "model"
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "成功翻译",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudioTranscriptionResponse"
                 }
               }
             },
@@ -245,21 +1272,21 @@
         ]
       }
     },
-    "/v1/responses": {
+    "/v1/completions": {
       "post": {
-        "summary": "创建响应 (OpenAI Responses API)",
+        "summary": "创建文本补全",
         "deprecated": false,
-        "description": "OpenAI Responses API，用于创建模型响应。\n支持多轮对话、工具调用、推理等功能。\n",
-        "operationId": "createResponse",
+        "description": "基于给定提示创建文本补全",
+        "operationId": "createCompletion",
         "tags": [
-          "OpenAI格式(Responses)"
+          "文本补全(Completions)"
         ],
         "parameters": [],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ResponsesRequest"
+                "$ref": "#/components/schemas/CompletionRequest"
               }
             }
           },
@@ -271,7 +1298,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ResponsesResponse"
+                  "$ref": "#/components/schemas/CompletionResponse"
                 }
               }
             },
@@ -285,33 +1312,576 @@
         ]
       }
     },
-	    "/v1/responses/compact": {
-	      "post": {
-	        "summary": "压缩对话 (OpenAI Responses API)",
-	        "deprecated": false,
-	        "description": "OpenAI Responses API，用于对长对话进行 compaction。",
-	        "operationId": "compactResponse",
+    "/v1/embeddings": {
+      "post": {
+        "summary": "创建文本嵌入",
+        "deprecated": false,
+        "description": "将文本转换为向量嵌入",
+        "operationId": "createEmbedding",
         "tags": [
-          "OpenAI格式(Responses)"
+          "OpenAI格式(Embeddings)"
         ],
         "parameters": [],
-	        "requestBody": {
-	          "content": {
-	            "application/json": {
-	              "schema": {
-	                "$ref": "#/components/schemas/ResponsesCompactionRequest"
-	              }
-	            }
-	          },
-	          "required": true
-	        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmbeddingRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
-            "description": "成功压缩对话",
+            "description": "成功创建嵌入",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ResponsesCompactionResponse"
+                  "$ref": "#/components/schemas/EmbeddingResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/engines/{model}/embeddings": {
+      "post": {
+        "summary": "Gemini 嵌入(Embeddings)",
+        "deprecated": false,
+        "description": "使用指定引擎/模型创建嵌入",
+        "operationId": "createEngineEmbedding",
+        "tags": [
+          "Gemini格式"
+        ],
+        "parameters": [
+          {
+            "name": "model",
+            "in": "path",
+            "description": "模型/引擎 ID",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmbeddingRequest"
+              },
+              "examples": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功创建嵌入",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmbeddingResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/files": {
+      "get": {
+        "summary": "列出文件 (未实现)",
+        "deprecated": false,
+        "description": "此接口尚未实现",
+        "operationId": "listFiles",
+        "tags": [
+          "未实现/Files"
+        ],
+        "parameters": [],
+        "responses": {
+          "501": {
+            "description": "未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "上传文件 (未实现)",
+        "deprecated": false,
+        "description": "此接口尚未实现",
+        "operationId": "createFile",
+        "tags": [
+          "未实现/Files"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "example": ""
+                  },
+                  "purpose": {
+                    "type": "string",
+                    "example": ""
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "501": {
+            "description": "未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/files/{file_id}": {
+      "get": {
+        "summary": "获取文件信息 (未实现)",
+        "deprecated": false,
+        "description": "此接口尚未实现",
+        "operationId": "retrieveFile",
+        "tags": [
+          "未实现/Files"
+        ],
+        "parameters": [
+          {
+            "name": "file_id",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "501": {
+            "description": "未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "summary": "删除文件 (未实现)",
+        "deprecated": false,
+        "description": "此接口尚未实现",
+        "operationId": "deleteFile",
+        "tags": [
+          "未实现/Files"
+        ],
+        "parameters": [
+          {
+            "name": "file_id",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "501": {
+            "description": "未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/files/{file_id}/content": {
+      "get": {
+        "summary": "获取文件内容 (未实现)",
+        "deprecated": false,
+        "description": "此接口尚未实现",
+        "operationId": "downloadFile",
+        "tags": [
+          "未实现/Files"
+        ],
+        "parameters": [
+          {
+            "name": "file_id",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "501": {
+            "description": "未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/fine-tunes": {
+      "get": {
+        "summary": "列出微调任务 (未实现)",
+        "deprecated": false,
+        "description": "此接口尚未实现",
+        "operationId": "listFineTunes",
+        "tags": [
+          "未实现/Fine-tunes"
+        ],
+        "parameters": [],
+        "responses": {
+          "501": {
+            "description": "未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "创建微调任务 (未实现)",
+        "deprecated": false,
+        "description": "此接口尚未实现",
+        "operationId": "createFineTune",
+        "tags": [
+          "未实现/Fine-tunes"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "501": {
+            "description": "未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/fine-tunes/{fine_tune_id}": {
+      "get": {
+        "summary": "获取微调任务详情 (未实现)",
+        "deprecated": false,
+        "description": "此接口尚未实现",
+        "operationId": "retrieveFineTune",
+        "tags": [
+          "未实现/Fine-tunes"
+        ],
+        "parameters": [
+          {
+            "name": "fine_tune_id",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "501": {
+            "description": "未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/fine-tunes/{fine_tune_id}/cancel": {
+      "post": {
+        "summary": "取消微调任务 (未实现)",
+        "deprecated": false,
+        "description": "此接口尚未实现",
+        "operationId": "cancelFineTune",
+        "tags": [
+          "未实现/Fine-tunes"
+        ],
+        "parameters": [
+          {
+            "name": "fine_tune_id",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "501": {
+            "description": "未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/fine-tunes/{fine_tune_id}/events": {
+      "get": {
+        "summary": "获取微调任务事件 (未实现)",
+        "deprecated": false,
+        "description": "此接口尚未实现",
+        "operationId": "listFineTuneEvents",
+        "tags": [
+          "未实现/Fine-tunes"
+        ],
+        "parameters": [
+          {
+            "name": "fine_tune_id",
+            "in": "path",
+            "description": "",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "501": {
+            "description": "未实现",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/images/edits": {
+      "post": {
+        "summary": "编辑图像(qwen-image-edit)",
+        "deprecated": false,
+        "description": " 百炼qwen-image系列图片生成",
+        "operationId": "createImage",
+        "tags": [
+          "图片生成/Qwen千问"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "model": {
+                    "type": "string"
+                  },
+                  "input": {
+                    "type": "object",
+                    "properties": {
+                      "messages": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "role": {
+                              "type": "string"
+                            },
+                            "content": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "image": {
+                                    "type": "string"
+                                  },
+                                  "text": {
+                                    "type": "string"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "required": [
+                      "messages"
+                    ]
+                  },
+                  "parameters": {
+                    "type": "object",
+                    "properties": {
+                      "n": {
+                        "type": "integer"
+                      },
+                      "negative_prompt": {
+                        "type": "string"
+                      },
+                      "prompt_extend": {
+                        "type": "boolean"
+                      },
+                      "watermark": {
+                        "type": "boolean"
+                      },
+                      "size": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "required": [
+                  "model",
+                  "input"
+                ]
+              },
+              "example": "{\n    \"model\": \"qwen-image-edit-plus\",\n    \"input\": {\n        \"messages\": [\n            {\n                \"role\": \"user\",\n                \"content\": [\n                    {\n                        \"image\": \"https://help-static-aliyun-doc.aliyuncs.com/file-manage-files/zh-CN/20250925/fpakfo/image36.webp\"\n                    },\n                    {\n                        \"text\": \"生成一张符合深度图的图像，遵循以下描述：一辆红色的破旧的自行车停在一条泥泞的小路上，背景是茂密的原始森林\"\n                    }\n                ]\n            }\n        ]\n    },\n    \"parameters\": {\n        \"n\": 2,\n        \"negative_prompt\": \" \",\n        \"prompt_extend\": true,\n        \"watermark\": false\n    }"
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功生成图像",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageResponse"
                 }
               }
             },
@@ -441,95 +2011,452 @@
         ]
       }
     },
-    "/v1/images/edits": {
+    "/v1/messages": {
       "post": {
-        "summary": "编辑图像(qwen-image-edit)",
+        "summary": "Claude 聊天",
         "deprecated": false,
-        "description": " 百炼qwen-image系列图片生成",
-        "operationId": "createImage",
+        "description": "Anthropic Claude Messages API 格式的请求。\n需要在请求头中包含 `anthropic-version`。\n",
+        "operationId": "createMessage",
         "tags": [
-          "图片生成/Qwen千问"
+          "Claude格式(Messages)"
+        ],
+        "parameters": [
+          {
+            "name": "anthropic-version",
+            "in": "header",
+            "description": "Anthropic API 版本",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "example": "2023-06-01"
+            }
+          },
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "description": "Anthropic API Key (可选，也可使用 Bearer Token)",
+            "required": false,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClaudeRequest"
+              },
+              "examples": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "成功创建响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaudeResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/models": {
+      "get": {
+        "summary": "获取模型列表",
+        "deprecated": false,
+        "description": "获取当前可用的模型列表。\n\n根据请求头自动识别返回格式：\n- 包含 `x-api-key` 和 `anthropic-version` 头时返回 Anthropic 格式\n- 包含 `x-goog-api-key` 头或 `key` 查询参数时返回 Gemini 格式\n- 其他情况返回 OpenAI 格式\n",
+        "operationId": "listModels",
+        "tags": [
+          "获取模型列表"
+        ],
+        "parameters": [
+          {
+            "name": "key",
+            "in": "query",
+            "description": "Google API Key (用于 Gemini 格式)",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-api-key",
+            "in": "header",
+            "description": "Anthropic API Key (用于 Claude 格式)",
+            "required": false,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "anthropic-version",
+            "in": "header",
+            "description": "Anthropic API 版本",
+            "required": false,
+            "example": "",
+            "schema": {
+              "type": "string",
+              "example": "2023-06-01"
+            }
+          },
+          {
+            "name": "x-goog-api-key",
+            "in": "header",
+            "description": "Google API Key (用于 Gemini 格式)",
+            "required": false,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取模型列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelsResponse"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "401": {
+            "description": "认证失败",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/moderations": {
+      "post": {
+        "summary": "内容审核",
+        "deprecated": false,
+        "description": "检查文本内容是否违反使用政策",
+        "operationId": "createModeration",
+        "tags": [
+          "Moderations"
         ],
         "parameters": [],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "model": {
-                    "type": "string"
-                  },
-                  "input": {
-                    "type": "object",
-                    "properties": {
-                      "messages": {
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "properties": {
-                            "role": {
-                              "type": "string"
-                            },
-                            "content": {
-                              "type": "array",
-                              "items": {
-                                "type": "object",
-                                "properties": {
-                                  "image": {
-                                    "type": "string"
-                                  },
-                                  "text": {
-                                    "type": "string"
-                                  }
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    },
-                    "required": [
-                      "messages"
-                    ]
-                  },
-                  "parameters": {
-                    "type": "object",
-                    "properties": {
-                      "n": {
-                        "type": "integer"
-                      },
-                      "negative_prompt": {
-                        "type": "string"
-                      },
-                      "prompt_extend": {
-                        "type": "boolean"
-                      },
-                      "watermark": {
-                        "type": "boolean"
-                      },
-                      "size": {
-                        "type": "string"
-                      }
-                    }
-                  }
-                },
-                "required": [
-                  "model",
-                  "input"
-                ]
-              },
-              "example": "{\n    \"model\": \"qwen-image-edit-plus\",\n    \"input\": {\n        \"messages\": [\n            {\n                \"role\": \"user\",\n                \"content\": [\n                    {\n                        \"image\": \"https://help-static-aliyun-doc.aliyuncs.com/file-manage-files/zh-CN/20250925/fpakfo/image36.webp\"\n                    },\n                    {\n                        \"text\": \"生成一张符合深度图的图像，遵循以下描述：一辆红色的破旧的自行车停在一条泥泞的小路上，背景是茂密的原始森林\"\n                    }\n                ]\n            }\n        ]\n    },\n    \"parameters\": {\n        \"n\": 2,\n        \"negative_prompt\": \" \",\n        \"prompt_extend\": true,\n        \"watermark\": false\n    }"
+                "$ref": "#/components/schemas/ModerationRequest"
+              }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "200": {
-            "description": "成功生成图像",
+            "description": "成功审核",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ImageResponse"
+                  "$ref": "#/components/schemas/ModerationResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/realtime": {
+      "get": {
+        "summary": "实时 WebSocket 连接",
+        "deprecated": false,
+        "description": "建立 WebSocket 连接用于实时对话。\n\n**注意**: 这是一个 WebSocket 端点，需要使用 WebSocket 协议连接。\n\n连接 URL 示例: `wss://api.example.com/v1/realtime?model=gpt-4o-realtime`\n",
+        "operationId": "createRealtimeSession",
+        "tags": [
+          "Realtime"
+        ],
+        "parameters": [
+          {
+            "name": "model",
+            "in": "query",
+            "description": "要使用的模型",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "gpt-4o-realtime-preview"
+            }
+          }
+        ],
+        "responses": {
+          "101": {
+            "description": "WebSocket 协议切换",
+            "headers": {}
+          },
+          "400": {
+            "description": "请求错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/rerank": {
+      "post": {
+        "summary": "文档重排序",
+        "deprecated": false,
+        "description": "根据查询对文档列表进行相关性重排序",
+        "operationId": "createRerank",
+        "tags": [
+          "重排序(Rerank)"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RerankRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "成功重排序",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RerankResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/responses": {
+      "post": {
+        "summary": "创建响应 (OpenAI Responses API)",
+        "deprecated": false,
+        "description": "OpenAI Responses API，用于创建模型响应。\n支持多轮对话、工具调用、推理等功能。\n",
+        "operationId": "createResponse",
+        "tags": [
+          "OpenAI格式(Responses)"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResponsesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "成功创建响应",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponsesResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/responses/compact": {
+      "post": {
+        "summary": "压缩对话 (OpenAI Responses API)",
+        "deprecated": false,
+        "description": "OpenAI Responses API，用于对长对话进行 compaction。",
+        "operationId": "compactResponse",
+        "tags": [
+          "OpenAI格式(Responses)"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResponsesCompactionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "成功压缩对话",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponsesCompactionResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/video/generations": {
+      "post": {
+        "summary": "创建视频生成任务",
+        "deprecated": false,
+        "description": "提交视频生成任务，支持文生视频和图生视频。\n\n返回任务 ID，可通过 GET 接口查询任务状态。\n",
+        "operationId": "createVideoGeneration",
+        "tags": [
+          "视频生成"
+        ],
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VideoRequest"
+              },
+              "example": {
+                "model": "kling-v1",
+                "prompt": "宇航员在月球上漫步",
+                "duration": 5,
+                "width": 1280,
+                "height": 720
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "成功创建视频生成任务",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VideoResponse"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "400": {
+            "description": "请求参数错误",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/v1/video/generations/{task_id}": {
+      "get": {
+        "summary": "获取视频生成任务状态",
+        "deprecated": false,
+        "description": "查询视频生成任务的状态和结果。\n\n任务状态：\n- `queued`: 排队中\n- `in_progress`: 生成中\n- `completed`: 已完成\n- `failed`: 失败\n",
+        "operationId": "getVideoGeneration",
+        "tags": [
+          "视频生成"
+        ],
+        "parameters": [
+          {
+            "name": "task_id",
+            "in": "path",
+            "description": "任务 ID",
+            "required": true,
+            "example": "abcd1234efgh",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功获取任务状态",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VideoTaskResponse"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "404": {
+            "description": "任务不存在",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             },
@@ -832,382 +2759,69 @@
         ]
       }
     },
-    "/kling/v1/videos/text2video": {
+    "/v1/videos/{video_id}/remix": {
       "post": {
-        "summary": "Kling 文生视频",
-        "deprecated": false,
-        "description": "使用 Kling 模型从文本描述生成视频。\n\n支持的模型：kling-v1, kling-v1-5 等\n",
-        "operationId": "createKlingText2Video",
+        "operationId": "createVideoRemix",
+        "summary": "视频 Remix",
+        "description": "基于已有视频创建 remix 变体",
         "tags": [
-          "视频生成/Kling格式"
-        ],
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/VideoRequest"
-              },
-              "example": {
-                "model": "kling-v1",
-                "prompt": "宇航员站起身走了",
-                "duration": 5,
-                "width": 1280,
-                "height": 720,
-                "fps": 30
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "成功创建视频生成任务",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/VideoResponse"
-                }
-              }
-            },
-            "headers": {}
-          },
-          "400": {
-            "description": "请求参数错误",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "headers": {}
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
-      }
-    },
-    "/kling/v1/videos/text2video/{task_id}": {
-      "get": {
-        "summary": "获取 Kling 文生视频任务状态",
-        "deprecated": false,
-        "description": "查询 Kling 文生视频任务的状态和结果。",
-        "operationId": "getKlingText2Video",
-        "tags": [
-          "视频生成/Kling格式"
+          "视频生成/Sora兼容格式"
         ],
         "parameters": [
           {
-            "name": "task_id",
+            "name": "video_id",
             "in": "path",
-            "description": "任务 ID",
             "required": true,
-            "example": "task-abc123",
             "schema": {
               "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "成功获取任务状态",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/VideoTaskResponse"
-                }
-              }
             },
-            "headers": {}
-          },
-          "404": {
-            "description": "任务不存在",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "headers": {}
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
-      }
-    },
-    "/kling/v1/videos/image2video": {
-      "post": {
-        "summary": "Kling 图生视频",
-        "deprecated": false,
-        "description": "使用 Kling 模型从图片生成视频。\n\n支持通过 image 参数传入图片 URL 或 Base64 编码的图片数据。\n",
-        "operationId": "createKlingImage2Video",
-        "tags": [
-          "视频生成/Kling格式"
-        ],
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/VideoRequest"
-              },
-              "example": {
-                "model": "kling-v1",
-                "prompt": "人物转身走开",
-                "image": "https://example.com/image.jpg",
-                "duration": 5,
-                "width": 1280,
-                "height": 720
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "成功创建视频生成任务",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/VideoResponse"
-                }
-              }
-            },
-            "headers": {}
-          },
-          "400": {
-            "description": "请求参数错误",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "headers": {}
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
-      }
-    },
-    "/kling/v1/videos/image2video/{task_id}": {
-      "get": {
-        "summary": "获取 Kling 图生视频任务状态",
-        "deprecated": false,
-        "description": "查询 Kling 图生视频任务的状态和结果。",
-        "operationId": "getKlingImage2Video",
-        "tags": [
-          "视频生成/Kling格式"
-        ],
-        "parameters": [
-          {
-            "name": "task_id",
-            "in": "path",
-            "description": "任务 ID",
-            "required": true,
-            "example": "task-abc123",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "成功获取任务状态",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/VideoTaskResponse"
-                }
-              }
-            },
-            "headers": {}
-          },
-          "404": {
-            "description": "任务不存在",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "headers": {}
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
-      }
-    },
-    "/jimeng/": {
-      "post": {
-        "summary": "即梦视频生成",
-        "deprecated": false,
-        "description": "即梦官方 API 格式的视频生成接口。\n\n支持通过 Action 参数指定操作类型：\n- `CVSync2AsyncSubmitTask`: 提交视频生成任务\n- `CVSync2AsyncGetResult`: 获取任务结果\n\n需要在查询参数中指定 Action 和 Version。\n",
-        "operationId": "createJimengVideo",
-        "tags": [
-          "视频生成/即梦格式"
-        ],
-        "parameters": [
-          {
-            "name": "Action",
-            "in": "query",
-            "description": "API 操作类型",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "enum": [
-                "CVSync2AsyncSubmitTask",
-                "CVSync2AsyncGetResult"
-              ]
-            }
-          },
-          {
-            "name": "Version",
-            "in": "query",
-            "description": "API 版本",
-            "required": true,
-            "example": "2022-08-31",
-            "schema": {
-              "type": "string"
-            }
+            "description": "原视频任务 ID"
           }
         ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
-                "description": "即梦官方 API 请求格式",
                 "properties": {
-                  "req_key": {
+                  "model": {
                     "type": "string",
-                    "description": "请求类型标识"
+                    "description": "模型名称"
                   },
                   "prompt": {
                     "type": "string",
-                    "description": "文本描述"
-                  },
-                  "binary_data_base64": {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    },
-                    "description": "Base64 编码的图片数据"
+                    "description": "修改提示词"
                   }
                 }
-              },
-              "example": {
-                "req_key": "jimeng_video_generation",
-                "prompt": "一只猫在弹钢琴"
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "成功处理请求",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "code": {
-                      "type": "integer",
-                      "description": "响应码"
-                    },
-                    "message": {
-                      "type": "string",
-                      "description": "响应消息"
-                    },
-                    "data": {
-                      "type": "object",
-                      "description": "响应数据",
-                      "properties": {}
-                    }
-                  }
-                }
-              }
-            },
-            "headers": {}
-          },
-          "400": {
-            "description": "请求参数错误",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "headers": {}
+            "description": "Remix 任务结果"
           }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
+        }
       }
     },
-    "/v1/video/generations": {
-      "post": {
-        "summary": "创建视频生成任务",
+    "/v1beta/models": {
+      "get": {
+        "summary": "Gemini 格式获取",
         "deprecated": false,
-        "description": "提交视频生成任务，支持文生视频和图生视频。\n\n返回任务 ID，可通过 GET 接口查询任务状态。\n",
-        "operationId": "createVideoGeneration",
+        "description": "以 Gemini API 格式返回可用模型列表",
+        "operationId": "listModelsGemini",
         "tags": [
-          "视频生成"
+          "获取模型列表"
         ],
         "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/VideoRequest"
-              },
-              "example": {
-                "model": "kling-v1",
-                "prompt": "宇航员在月球上漫步",
-                "duration": 5,
-                "width": 1280,
-                "height": 720
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
           "200": {
-            "description": "成功创建视频生成任务",
+            "description": "成功获取模型列表",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/VideoResponse"
-                }
-              }
-            },
-            "headers": {}
-          },
-          "400": {
-            "description": "请求参数错误",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/GeminiModelsResponse"
                 }
               }
             },
@@ -1221,118 +2835,141 @@
         ]
       }
     },
-    "/v1/video/generations/{task_id}": {
-      "get": {
-        "summary": "获取视频生成任务状态",
-        "deprecated": false,
-        "description": "查询视频生成任务的状态和结果。\n\n任务状态：\n- `queued`: 排队中\n- `in_progress`: 生成中\n- `completed`: 已完成\n- `failed`: 失败\n",
-        "operationId": "getVideoGeneration",
-        "tags": [
-          "视频生成"
-        ],
-        "parameters": [
-          {
-            "name": "task_id",
-            "in": "path",
-            "description": "任务 ID",
-            "required": true,
-            "example": "abcd1234efgh",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "成功获取任务状态",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/VideoTaskResponse"
-                }
-              }
-            },
-            "headers": {}
-          },
-          "404": {
-            "description": "任务不存在",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "headers": {}
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
-      }
-    },
-    "/v1/messages": {
+    "/v1beta/models/{model}:countTokens": {
       "post": {
-        "summary": "Claude 聊天",
-        "deprecated": false,
-        "description": "Anthropic Claude Messages API 格式的请求。\n需要在请求头中包含 `anthropic-version`。\n",
-        "operationId": "createMessage",
+        "operationId": "geminiCountTokens",
+        "summary": "Gemini Token 计数",
+        "description": "计算给定内容的 token 数量",
         "tags": [
-          "Claude格式(Messages)"
+          "Gemini格式"
         ],
         "parameters": [
           {
-            "name": "anthropic-version",
-            "in": "header",
-            "description": "Anthropic API 版本",
+            "name": "model",
+            "in": "path",
             "required": true,
-            "example": "",
-            "schema": {
-              "type": "string",
-              "example": "2023-06-01"
-            }
-          },
-          {
-            "name": "x-api-key",
-            "in": "header",
-            "description": "Anthropic API Key (可选，也可使用 Bearer Token)",
-            "required": false,
-            "example": "",
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "Gemini 模型名称"
           }
         ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ClaudeRequest"
-              },
-              "examples": {}
+                "type": "object",
+                "properties": {
+                  "contents": {
+                    "type": "array",
+                    "description": "待计数的内容",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "role": {
+                          "type": "string"
+                        },
+                        "parts": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "text": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "required": [
+                  "contents"
+                ]
+              }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "成功创建响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ClaudeResponse"
-                }
-              }
+            "description": "Token 计数结果"
+          }
+        }
+      }
+    },
+    "/v1beta/models/{model}:embedContent": {
+      "post": {
+        "operationId": "geminiEmbedContent",
+        "summary": "Gemini 文本嵌入",
+        "description": "使用 Gemini 模型创建文本嵌入向量",
+        "tags": [
+          "Gemini格式"
+        ],
+        "parameters": [
+          {
+            "name": "model",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
             },
-            "headers": {}
+            "description": "Gemini 嵌入模型名称，如 text-embedding-004"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "type": "object",
+                    "description": "待嵌入的内容",
+                    "properties": {
+                      "parts": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "text": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "taskType": {
+                    "type": "string",
+                    "description": "嵌入任务类型",
+                    "enum": [
+                      "RETRIEVAL_QUERY",
+                      "RETRIEVAL_DOCUMENT",
+                      "SEMANTIC_SIMILARITY",
+                      "CLASSIFICATION",
+                      "CLUSTERING"
+                    ]
+                  },
+                  "title": {
+                    "type": "string",
+                    "description": "文档标题（仅 RETRIEVAL_DOCUMENT 时使用）"
+                  }
+                },
+                "required": [
+                  "content"
+                ]
+              }
+            }
           }
         },
-        "security": [
-          {
-            "BearerAuth": []
+        "responses": {
+          "200": {
+            "description": "嵌入向量"
           }
-        ]
+        }
       }
     },
     "/v1beta/models/{model}:generateContent": {
@@ -1460,12 +3097,11 @@
         ]
       }
     },
-    "/v1/engines/{model}/embeddings": {
+    "/v1beta/models/{model}:streamGenerateContent": {
       "post": {
-        "summary": "Gemini 嵌入(Embeddings)",
-        "deprecated": false,
-        "description": "使用指定引擎/模型创建嵌入",
-        "operationId": "createEngineEmbedding",
+        "operationId": "geminiStreamGenerateContent",
+        "summary": "Gemini 流式内容生成",
+        "description": "使用 Gemini 模型流式生成文本、图片等内容",
         "tags": [
           "Gemini格式"
         ],
@@ -1473,837 +3109,96 @@
           {
             "name": "model",
             "in": "path",
-            "description": "模型/引擎 ID",
             "required": true,
-            "example": "",
             "schema": {
               "type": "string"
-            }
+            },
+            "description": "Gemini 模型名称，如 gemini-2.0-flash"
           }
         ],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EmbeddingRequest"
-              },
-              "examples": {}
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "成功创建嵌入",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EmbeddingResponse"
-                }
-              }
-            },
-            "headers": {}
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
-      }
-    },
-    "/v1/embeddings": {
-      "post": {
-        "summary": "创建文本嵌入",
-        "deprecated": false,
-        "description": "将文本转换为向量嵌入",
-        "operationId": "createEmbedding",
-        "tags": [
-          "OpenAI格式(Embeddings)"
-        ],
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EmbeddingRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "成功创建嵌入",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EmbeddingResponse"
-                }
-              }
-            },
-            "headers": {}
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
-      }
-    },
-    "/v1/completions": {
-      "post": {
-        "summary": "创建文本补全",
-        "deprecated": false,
-        "description": "基于给定提示创建文本补全",
-        "operationId": "createCompletion",
-        "tags": [
-          "文本补全(Completions)"
-        ],
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CompletionRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "成功创建响应",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CompletionResponse"
-                }
-              }
-            },
-            "headers": {}
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
-      }
-    },
-    "/v1/audio/transcriptions": {
-      "post": {
-        "summary": "音频转录",
-        "deprecated": false,
-        "description": "将音频转换为文本",
-        "operationId": "createTranscription",
-        "tags": [
-          "OpenAI音频(Audio)"
-        ],
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
               "schema": {
                 "type": "object",
                 "properties": {
-                  "file": {
-                    "type": "string",
-                    "format": "binary",
-                    "description": "音频文件",
-                    "example": ""
-                  },
-                  "model": {
-                    "type": "string",
-                    "example": "whisper-1"
-                  },
-                  "language": {
-                    "type": "string",
-                    "description": "ISO-639-1 语言代码",
-                    "example": ""
-                  },
-                  "prompt": {
-                    "type": "string",
-                    "example": ""
-                  },
-                  "response_format": {
-                    "type": "string",
-                    "enum": [
-                      "json",
-                      "text",
-                      "srt",
-                      "verbose_json",
-                      "vtt"
-                    ],
-                    "default": "json",
-                    "example": "json"
-                  },
-                  "temperature": {
-                    "type": "number",
-                    "example": 0
-                  },
-                  "timestamp_granularities": {
+                  "contents": {
                     "type": "array",
+                    "description": "对话内容",
                     "items": {
-                      "type": "string",
-                      "enum": [
-                        "word",
-                        "segment"
-                      ]
-                    },
-                    "example": ""
+                      "type": "object",
+                      "properties": {
+                        "role": {
+                          "type": "string",
+                          "enum": [
+                            "user",
+                            "model"
+                          ]
+                        },
+                        "parts": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "text": {
+                                "type": "string"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "generationConfig": {
+                    "type": "object",
+                    "description": "生成配置",
+                    "properties": {
+                      "temperature": {
+                        "type": "number"
+                      },
+                      "topP": {
+                        "type": "number"
+                      },
+                      "topK": {
+                        "type": "integer"
+                      },
+                      "maxOutputTokens": {
+                        "type": "integer"
+                      },
+                      "candidateCount": {
+                        "type": "integer"
+                      }
+                    }
+                  },
+                  "safetySettings": {
+                    "type": "array",
+                    "description": "安全设置",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "category": {
+                          "type": "string"
+                        },
+                        "threshold": {
+                          "type": "string"
+                        }
+                      }
+                    }
                   }
                 },
                 "required": [
-                  "file",
-                  "model"
+                  "contents"
                 ]
               }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "200": {
-            "description": "成功转录",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AudioTranscriptionResponse"
-                }
-              }
-            },
-            "headers": {}
+            "description": "流式生成结果"
           }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
-      }
-    },
-    "/v1/audio/translations": {
-      "post": {
-        "summary": "音频翻译",
-        "deprecated": false,
-        "description": "将音频翻译为英文文本",
-        "operationId": "createTranslation",
-        "tags": [
-          "OpenAI音频(Audio)"
-        ],
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "file": {
-                    "type": "string",
-                    "format": "binary",
-                    "example": ""
-                  },
-                  "model": {
-                    "type": "string",
-                    "example": ""
-                  },
-                  "prompt": {
-                    "type": "string",
-                    "example": ""
-                  },
-                  "response_format": {
-                    "type": "string",
-                    "example": ""
-                  },
-                  "temperature": {
-                    "type": "number",
-                    "example": 0
-                  }
-                },
-                "required": [
-                  "file",
-                  "model"
-                ]
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "成功翻译",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AudioTranscriptionResponse"
-                }
-              }
-            },
-            "headers": {}
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
-      }
-    },
-    "/v1/audio/speech": {
-      "post": {
-        "summary": "文本转语音",
-        "deprecated": false,
-        "description": "将文本转换为音频",
-        "operationId": "createSpeech",
-        "tags": [
-          "OpenAI音频(Audio)"
-        ],
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SpeechRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "成功生成音频",
-            "content": {
-              "audio/mpeg": {
-                "schema": {
-                  "type": "string",
-                  "format": "binary"
-                }
-              }
-            },
-            "headers": {}
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
-      }
-    },
-    "/v1/rerank": {
-      "post": {
-        "summary": "文档重排序",
-        "deprecated": false,
-        "description": "根据查询对文档列表进行相关性重排序",
-        "operationId": "createRerank",
-        "tags": [
-          "重排序(Rerank)"
-        ],
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RerankRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "成功重排序",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RerankResponse"
-                }
-              }
-            },
-            "headers": {}
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
-      }
-    },
-    "/v1/moderations": {
-      "post": {
-        "summary": "内容审核",
-        "deprecated": false,
-        "description": "检查文本内容是否违反使用政策",
-        "operationId": "createModeration",
-        "tags": [
-          "Moderations"
-        ],
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ModerationRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "成功审核",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ModerationResponse"
-                }
-              }
-            },
-            "headers": {}
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
-      }
-    },
-    "/v1/realtime": {
-      "get": {
-        "summary": "实时 WebSocket 连接",
-        "deprecated": false,
-        "description": "建立 WebSocket 连接用于实时对话。\n\n**注意**: 这是一个 WebSocket 端点，需要使用 WebSocket 协议连接。\n\n连接 URL 示例: `wss://api.example.com/v1/realtime?model=gpt-4o-realtime`\n",
-        "operationId": "createRealtimeSession",
-        "tags": [
-          "Realtime"
-        ],
-        "parameters": [
-          {
-            "name": "model",
-            "in": "query",
-            "description": "要使用的模型",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "example": "gpt-4o-realtime-preview"
-            }
-          }
-        ],
-        "responses": {
-          "101": {
-            "description": "WebSocket 协议切换",
-            "headers": {}
-          },
-          "400": {
-            "description": "请求错误",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "headers": {}
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
-      }
-    },
-    "/v1/fine-tunes": {
-      "get": {
-        "summary": "列出微调任务 (未实现)",
-        "deprecated": false,
-        "description": "此接口尚未实现",
-        "operationId": "listFineTunes",
-        "tags": [
-          "未实现/Fine-tunes"
-        ],
-        "parameters": [],
-        "responses": {
-          "501": {
-            "description": "未实现",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "headers": {}
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
-      },
-      "post": {
-        "summary": "创建微调任务 (未实现)",
-        "deprecated": false,
-        "description": "此接口尚未实现",
-        "operationId": "createFineTune",
-        "tags": [
-          "未实现/Fine-tunes"
-        ],
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {}
-              }
-            }
-          }
-        },
-        "responses": {
-          "501": {
-            "description": "未实现",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "headers": {}
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
-      }
-    },
-    "/v1/fine-tunes/{fine_tune_id}": {
-      "get": {
-        "summary": "获取微调任务详情 (未实现)",
-        "deprecated": false,
-        "description": "此接口尚未实现",
-        "operationId": "retrieveFineTune",
-        "tags": [
-          "未实现/Fine-tunes"
-        ],
-        "parameters": [
-          {
-            "name": "fine_tune_id",
-            "in": "path",
-            "description": "",
-            "required": true,
-            "example": "",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "501": {
-            "description": "未实现",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "headers": {}
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
-      }
-    },
-    "/v1/fine-tunes/{fine_tune_id}/cancel": {
-      "post": {
-        "summary": "取消微调任务 (未实现)",
-        "deprecated": false,
-        "description": "此接口尚未实现",
-        "operationId": "cancelFineTune",
-        "tags": [
-          "未实现/Fine-tunes"
-        ],
-        "parameters": [
-          {
-            "name": "fine_tune_id",
-            "in": "path",
-            "description": "",
-            "required": true,
-            "example": "",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "501": {
-            "description": "未实现",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "headers": {}
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
-      }
-    },
-    "/v1/fine-tunes/{fine_tune_id}/events": {
-      "get": {
-        "summary": "获取微调任务事件 (未实现)",
-        "deprecated": false,
-        "description": "此接口尚未实现",
-        "operationId": "listFineTuneEvents",
-        "tags": [
-          "未实现/Fine-tunes"
-        ],
-        "parameters": [
-          {
-            "name": "fine_tune_id",
-            "in": "path",
-            "description": "",
-            "required": true,
-            "example": "",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "501": {
-            "description": "未实现",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "headers": {}
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
-      }
-    },
-    "/v1/files": {
-      "get": {
-        "summary": "列出文件 (未实现)",
-        "deprecated": false,
-        "description": "此接口尚未实现",
-        "operationId": "listFiles",
-        "tags": [
-          "未实现/Files"
-        ],
-        "parameters": [],
-        "responses": {
-          "501": {
-            "description": "未实现",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "headers": {}
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
-      },
-      "post": {
-        "summary": "上传文件 (未实现)",
-        "deprecated": false,
-        "description": "此接口尚未实现",
-        "operationId": "createFile",
-        "tags": [
-          "未实现/Files"
-        ],
-        "parameters": [],
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "file": {
-                    "type": "string",
-                    "format": "binary",
-                    "example": ""
-                  },
-                  "purpose": {
-                    "type": "string",
-                    "example": ""
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "501": {
-            "description": "未实现",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "headers": {}
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
-      }
-    },
-    "/v1/files/{file_id}": {
-      "get": {
-        "summary": "获取文件信息 (未实现)",
-        "deprecated": false,
-        "description": "此接口尚未实现",
-        "operationId": "retrieveFile",
-        "tags": [
-          "未实现/Files"
-        ],
-        "parameters": [
-          {
-            "name": "file_id",
-            "in": "path",
-            "description": "",
-            "required": true,
-            "example": "",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "501": {
-            "description": "未实现",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "headers": {}
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
-      },
-      "delete": {
-        "summary": "删除文件 (未实现)",
-        "deprecated": false,
-        "description": "此接口尚未实现",
-        "operationId": "deleteFile",
-        "tags": [
-          "未实现/Files"
-        ],
-        "parameters": [
-          {
-            "name": "file_id",
-            "in": "path",
-            "description": "",
-            "required": true,
-            "example": "",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "501": {
-            "description": "未实现",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "headers": {}
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
-      }
-    },
-    "/v1/files/{file_id}/content": {
-      "get": {
-        "summary": "获取文件内容 (未实现)",
-        "deprecated": false,
-        "description": "此接口尚未实现",
-        "operationId": "downloadFile",
-        "tags": [
-          "未实现/Files"
-        ],
-        "parameters": [
-          {
-            "name": "file_id",
-            "in": "path",
-            "description": "",
-            "required": true,
-            "example": "",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "501": {
-            "description": "未实现",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            },
-            "headers": {}
-          }
-        },
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ]
+        }
       }
     }
   },
@@ -3170,9 +4065,9 @@
           }
         }
       },
-	      "ResponsesCompactionResponse": {
-	        "type": "object",
-	        "properties": {
+      "ResponsesCompactionResponse": {
+        "type": "object",
+        "properties": {
           "id": {
             "type": "string"
           },
@@ -3197,44 +4092,44 @@
             "type": "object",
             "properties": {}
           }
-	        }
-	      },
-	      "ResponsesCompactionRequest": {
-	        "type": "object",
-	        "required": [
-	          "model"
-	        ],
-	        "properties": {
-	          "model": {
-	            "type": "string"
-	          },
-	          "input": {
-	            "description": "输入内容，可以是字符串或消息数组",
-	            "oneOf": [
-	              {
-	                "type": "string"
-	              },
-	              {
-	                "type": "array",
-	                "items": {
-	                  "type": "object",
-	                  "properties": {}
-	                }
-	              }
-	            ]
-	          },
-	          "instructions": {
-	            "type": "string"
-	          },
-	          "previous_response_id": {
-	            "type": "string"
-	          }
-	        }
-	      },
-	      "ResponsesStreamResponse": {
-	        "type": "object",
-	        "properties": {
-	          "type": {
+        }
+      },
+      "ResponsesCompactionRequest": {
+        "type": "object",
+        "required": [
+          "model"
+        ],
+        "properties": {
+          "model": {
+            "type": "string"
+          },
+          "input": {
+            "description": "输入内容，可以是字符串或消息数组",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            ]
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "previous_response_id": {
+            "type": "string"
+          }
+        }
+      },
+      "ResponsesStreamResponse": {
+        "type": "object",
+        "properties": {
+          "type": {
             "type": "string"
           },
           "response": {
