@@ -74,7 +74,10 @@ func run() error {
 	server := mcp.NewServer(&mcp.Implementation{
 		Name:    "new-api-mcp-server",
 		Version: version,
-	}, nil)
+	}, &mcp.ServerOptions{
+		Instructions: "Available tool categories: Channel management (add, toggle, set priority, test channels), User management (list, toggle status, set quota), Token/group management (switch group), Provider listing (list providers with balance). API admin tools (api_ prefix) for channel/user/token/log CRUD. Relay/model tools for AI model inference (chat, image, video generation). Use descriptive queries to search for specific tools.",
+		PageSize:     100,
+	})
 
 	// Register relay tools
 	if cfg.APIKey != "" {

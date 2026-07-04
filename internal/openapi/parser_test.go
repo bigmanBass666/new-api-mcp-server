@@ -121,8 +121,9 @@ func TestParse_MissingOperationId(t *testing.T) {
 	if createItem == nil {
 		t.Fatal("POST /api/items tool not found")
 	}
-	if createItem.Name != "post_api_items" {
-		t.Errorf("generated name = %q, want %q", createItem.Name, "post_api_items")
+	// generateName produces camelCase: POST + api + items -> "createApiItems"
+	if createItem.Name != "createApiItems" {
+		t.Errorf("generated name = %q, want %q", createItem.Name, "createApiItems")
 	}
 }
 

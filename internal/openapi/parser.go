@@ -62,6 +62,11 @@ func buildToolDef(path, method string, op *openapi3.Operation) ToolDef {
 	}
 
 	desc := op.Summary
+	// If summary is empty or has no English text (emoji-only or pure Chinese),
+	// generate a search-friendly description from the path
+	if desc == "" || !hasEnglish(desc) {
+		desc = generateDescription(method, path)
+	}
 	if op.Description != "" {
 		if desc != "" {
 			desc += " - " + op.Description
@@ -229,13 +234,129 @@ func schemaToMap(s *openapi3.Schema) map[string]any {
 	return m
 }
 
+// generateName creates a camelCase tool name from HTTP method and URL path.
+// Used as fallback when the OpenAPI spec has no operationId.
+// Example: GET /api/channel/ -> "getChannel"
 func generateName(method, path string) string {
-	slug := strings.ToLower(path)
-	slug = strings.ReplaceAll(slug, "{", "")
-	slug = strings.ReplaceAll(slug, "}", "")
-	slug = strings.ReplaceAll(slug, "/", "_")
-	slug = strings.Trim(slug, "_")
-	return sanitizeToolName(strings.ToLower(method) + "_" + slug)
+	segments := splitPath(path)
+	if len(segments) == 0 {
+		return sanitizeToolName(methodVerb(method))
+	}
+
+	// Build camelCase: verb + capitalized segments
+	var b strings.Builder
+	b.WriteString(methodVerb(method))
+	for _, s := range segments {
+		b.WriteString(capitalize(s))
+	}
+
+	return sanitizeToolName(b.String())
+}
+
+// generateDescription creates a search-friendly description from the HTTP method and path.
+// Used as fallback when the OpenAPI spec has no meaningful summary/description.
+// Example: "GET /api/channel/ — Channel management endpoint"
+func generateDescription(method, path string) string {
+	verb := methodVerb(method)
+	// Capitalize first letter
+	if len(verb) > 0 {
+		verb = strings.ToUpper(verb[:1]) + verb[1:]
+	}
+
+	// Extract meaningful keywords from path for a readable summary
+	segments := splitPath(path)
+	noun := ""
+	if len(segments) > 0 {
+		// Use the last meaningful segment (most specific)
+		noun = segments[len(segments)-1]
+		// Capitalize
+		noun = strings.ToUpper(noun[:1]) + noun[1:]
+	}
+
+	tag := extractTag(path)
+	desc := verb + " " + tag
+	if noun != "" && noun != tag {
+		desc += " (" + noun + ")"
+	}
+	desc += " endpoint"
+	return desc
+}
+
+// methodVerb maps HTTP methods to readable action verbs.
+func methodVerb(method string) string {
+	switch strings.ToUpper(method) {
+	case "GET":
+		return "get"
+	case "POST":
+		return "create"
+	case "PUT":
+		return "update"
+	case "DELETE":
+		return "delete"
+	case "PATCH":
+		return "patch"
+	case "HEAD":
+		return "head"
+	case "OPTIONS":
+		return "options"
+	default:
+		return strings.ToLower(method)
+	}
+}
+
+// capitalize returns s with the first letter uppercased.
+func capitalize(s string) string {
+	if s == "" {
+		return ""
+	}
+	return strings.ToUpper(s[:1]) + s[1:]
+}
+
+// splitPath extracts clean path segments from a URL path, stripping braces and leading "api".
+func splitPath(path string) []string {
+	slug := strings.Trim(path, "/")
+	parts := strings.Split(slug, "/")
+
+	var clean []string
+	for _, p := range parts {
+		p = strings.NewReplacer("{", "", "}", "").Replace(p)
+		if p != "" {
+			clean = append(clean, p)
+		}
+	}
+	return clean
+}
+
+// extractTag returns the most relevant category tag from a path.
+// Examples: /api/channel/ -> "channel", /api/user/ -> "user", /mj/submit/imagine -> "Midjourney"
+func extractTag(path string) string {
+	parts := strings.Split(strings.Trim(path, "/"), "/")
+	if len(parts) == 0 {
+		return "api"
+	}
+	// Skip "api" prefix if present
+	start := 0
+	if parts[0] == "api" && len(parts) > 1 {
+		start = 1
+	}
+	if start < len(parts) {
+		tag := parts[start]
+		tag = strings.NewReplacer("{", "", "}", "").Replace(tag)
+		if tag != "" {
+			return tag
+		}
+	}
+	return "api"
+}
+
+// hasEnglish checks whether a string contains any ASCII English letters.
+func hasEnglish(s string) bool {
+	for _, r := range s {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') {
+			return true
+		}
+	}
+	return false
 }
 
 func sanitizeToolName(name string) string {
