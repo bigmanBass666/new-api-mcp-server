@@ -20,12 +20,12 @@ var tracerAddChannel = otel.Tracer("hightools.add_channel")
 
 // NewAddChannelTool returns a ToolDef for creating a new AI provider channel.
 //
-// The tool constructs the upstream request body with mode:"single" and
-// sends POST /api/channel/. Required: name, type, key. Optional: models, group, priority.
+// The tool constructs the upstream request body and sends POST /api/channel/.
+// Required: name, type, key. Optional: models, group, priority, mode, multi_key_mode.
 func NewAddChannelTool(c *client.Client, metrics *observability.Metrics) ToolDef {
 	return ToolDef{
 		Name:        "add_channel",
-		Description: "Add a new AI provider channel. Sends a POST request to /api/channel/. Required: name (string), type (integer), key (string). Optional: models (string), group (string), priority (integer).",
+		Description: "Add a new AI provider channel. Sends a POST request to /api/channel/. Required: name (string), type (integer), key (string). Optional: models (string), group (string), priority (integer), mode (string), multi_key_mode (string).",
 		InputSchema: inputSchemaAddChannel(),
 		Handler:    handleAddChannel(c, metrics),
 	}
@@ -58,6 +58,16 @@ func inputSchemaAddChannel() map[string]any {
 			"priority": map[string]any{
 				"type":        "integer",
 				"description": "Optional: channel priority (higher = preferred in load balancing)",
+			},
+			"mode": map[string]any{
+				"type":        "string",
+				"description": "Optional: key mode, 'single' (default) for one key, 'multi_to_single' for multiple keys separated by newline",
+				"enum":        []any{"single", "multi_to_single"},
+			},
+			"multi_key_mode": map[string]any{
+				"type":        "string",
+				"description": "Optional: multi-key load balancing strategy, 'polling' or 'random'. Only used when mode='multi_to_single'",
+				"enum":        []any{"polling", "random"},
 			},
 		},
 		"required": []any{"name", "type", "key"},
@@ -144,10 +154,42 @@ func handleAddChannel(c *client.Client, metrics *observability.Metrics) mcp.Tool
 			channel["priority"] = priority
 		}
 
+		// Read optional: mode (default "single")
+		mode := "single"
+		if modeRaw, ok := args["mode"]; ok {
+			modeStr, ok := modeRaw.(string)
+			if !ok {
+				return errorResultAddChannel(fmt.Sprintf("mode must be a string, got %T", modeRaw)), nil
+			}
+			if modeStr != "single" && modeStr != "multi_to_single" {
+				return errorResultAddChannel(fmt.Sprintf("mode must be 'single' or 'multi_to_single', got %q", modeStr)), nil
+			}
+			mode = modeStr
+		}
+
+		// Read optional: multi_key_mode (only valid when mode="multi_to_single")
+		var multiKeyMode string
+		if multiKeyModeRaw, ok := args["multi_key_mode"]; ok {
+			mkmStr, ok := multiKeyModeRaw.(string)
+			if !ok {
+				return errorResultAddChannel(fmt.Sprintf("multi_key_mode must be a string, got %T", multiKeyModeRaw)), nil
+			}
+			if mkmStr != "polling" && mkmStr != "random" {
+				return errorResultAddChannel(fmt.Sprintf("multi_key_mode must be 'polling' or 'random', got %q", mkmStr)), nil
+			}
+			if mode != "multi_to_single" {
+				return errorResultAddChannel("multi_key_mode is only valid when mode='multi_to_single'"), nil
+			}
+			multiKeyMode = mkmStr
+		}
+
 		// Construct request body
 		body := map[string]any{
-			"mode":    "single",
+			"mode":    mode,
 			"channel": channel,
+		}
+		if multiKeyMode != "" {
+			body["multi_key_mode"] = multiKeyMode
 		}
 		bodyBytes, err := json.Marshal(body)
 		if err != nil {
