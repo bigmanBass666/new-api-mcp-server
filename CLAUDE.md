@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+> 本地部署的New API部署目录在这儿。D:\Test\installations\new-api
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## What This Project Is
