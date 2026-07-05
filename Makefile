@@ -39,3 +39,7 @@ docker-logs:
 # E2E test targets
 test-e2e:
 	@if [ -f scripts/test-e2e.sh ]; then bash scripts/test-e2e.sh; else echo "scripts/test-e2e.sh not found — run 'make build' first"; fi
+
+test-int:
+	@echo "Running integration tests (requires MCP + New API)..."
+	go test -tags=integration -v -count=1 ./internal/hightools/
