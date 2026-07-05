@@ -15,6 +15,7 @@ import (
 	"github.com/QuantumNous/new-api-mcp-server/internal/client"
 	"github.com/QuantumNous/new-api-mcp-server/internal/observability"
 	"github.com/QuantumNous/new-api-mcp-server/internal/openapi"
+	"github.com/modelcontextprotocol/go-sdk/jsonrpc"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -49,7 +50,7 @@ func (h *Handler) MakeHandler(def openapi.ToolDef) mcp.ToolHandler {
 		var args map[string]any
 		if req.Params != nil && len(req.Params.Arguments) > 0 {
 			if err := json.Unmarshal(req.Params.Arguments, &args); err != nil {
-				return errorResult(ErrInvalidParams, fmt.Sprintf("invalid arguments: %v", err)), nil
+				return nil, &jsonrpc.Error{Code: -32000, Message: fmt.Sprintf("invalid arguments: %v", err)}
 			}
 		}
 
@@ -61,7 +62,7 @@ func (h *Handler) MakeHandler(def openapi.ToolDef) mcp.ToolHandler {
 				// If the parameter schema specifies type=integer, validate it
 				if schema, ok := p.Schema["type"].(string); ok && schema == "integer" {
 					if _, err := strconv.ParseInt(value, 10, 64); err != nil {
-						return errorResult(ErrInvalidParams, fmt.Sprintf("path param %q must be an integer", p.Name)), nil
+						return nil, &jsonrpc.Error{Code: -32000, Message: fmt.Sprintf("path param %q must be an integer", p.Name)}
 					}
 				}
 				// URL-encode the value to prevent path traversal injection

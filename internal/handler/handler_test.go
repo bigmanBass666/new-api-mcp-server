@@ -3,13 +3,16 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/QuantumNous/new-api-mcp-server/internal/client"
 	"github.com/QuantumNous/new-api-mcp-server/internal/openapi"
+	"github.com/modelcontextprotocol/go-sdk/jsonrpc"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -233,5 +236,92 @@ func TestHandle_NonJSONResponse(t *testing.T) {
 	text := result.Content[0].(*mcp.TextContent).Text
 	if text == string([]byte{0x89, 0x50, 0x4E, 0x47}) {
 		t.Error("expected base64 encoded content for non-JSON response")
+	}
+}
+func TestHandle_InvalidJSONParams(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Error("should not reach upstream with invalid args")
+	}))
+	defer srv.Close()
+
+	c := client.New(srv.URL, "sk-key", "", "", 5*time.Second)
+	def := openapi.ToolDef{
+		Name:   "testTool",
+		Method: "GET",
+		Path:   "/api/test",
+	}
+
+	h := New(c, client.SourceRelay, nil)
+	handler := h.MakeHandler(def)
+
+	// Arguments is malformed JSON (not a valid JSON object)
+	req := &mcp.CallToolRequest{}
+	req.Params = &mcp.CallToolParamsRaw{
+		Name:      "testTool",
+		Arguments: json.RawMessage("{invalid}"),
+	}
+
+	result, err := handler(context.Background(), req)
+	if err == nil {
+		t.Fatal("expected protocol-level error for invalid JSON args")
+	}
+	if result != nil {
+		t.Fatal("expected nil result for protocol-level error")
+	}
+
+	// Verify it's a jsonrpc.Error with code -32000
+	var rpcErr *jsonrpc.Error
+	if !errors.As(err, &rpcErr) {
+		t.Fatalf("expected *jsonrpc.Error, got %T", err)
+	}
+	if rpcErr.Code != -32000 {
+		t.Errorf("expected code -32000, got %d", rpcErr.Code)
+	}
+	if !strings.Contains(rpcErr.Message, "invalid arguments") {
+		t.Errorf("message should contain 'invalid arguments', got: %s", rpcErr.Message)
+	}
+}
+
+func TestHandle_InvalidPathParamType(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Error("should not reach upstream with invalid path param")
+	}))
+	defer srv.Close()
+
+	c := client.New(srv.URL, "sk-key", "", "", 5*time.Second)
+	def := openapi.ToolDef{
+		Name:   "getItem",
+		Method: "GET",
+		Path:   "/api/items/{id}",
+		PathParams: []openapi.ParamDef{
+			{Name: "id", In: "path", Required: true, Schema: map[string]any{"type": "integer"}},
+		},
+	}
+
+	h := New(c, client.SourceRelay, nil)
+	handler := h.MakeHandler(def)
+
+	// Send a non-integer path param
+	req := &mcp.CallToolRequest{}
+	req.Params = &mcp.CallToolParamsRaw{Arguments: json.RawMessage(`{"id": "abc"}`)}
+
+	result, err := handler(context.Background(), req)
+	if err == nil {
+		t.Fatal("expected protocol-level error for invalid path param type")
+	}
+	if result != nil {
+		t.Fatal("expected nil result for protocol-level error")
+	}
+
+	// Verify it's a jsonrpc.Error with code -32000
+	var rpcErr *jsonrpc.Error
+	if !errors.As(err, &rpcErr) {
+		t.Fatalf("expected *jsonrpc.Error, got %T", err)
+	}
+	if rpcErr.Code != -32000 {
+		t.Errorf("expected code -32000, got %d", rpcErr.Code)
+	}
+	if !strings.Contains(rpcErr.Message, `path param "id" must be an integer`) {
+		t.Errorf("message should mention path param validation, got: %s", rpcErr.Message)
 	}
 }
