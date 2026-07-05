@@ -22,5 +22,8 @@ func RegisterAll(c *client.Client, metrics *observability.Metrics) []ToolDef {
 		NewListUsersTool(c, metrics),
 		NewSwitchGroupTool(c, metrics),
 		NewAddChannelTool(c, metrics),
+		NewCreateTokenTool(c, metrics),
+		NewRevokeTokenTool(c, metrics),
+		NewListTokensTool(c, metrics),
 	}
 }
