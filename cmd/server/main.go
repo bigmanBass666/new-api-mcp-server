@@ -71,12 +71,15 @@ func run() error {
 
 	relayClient := client.New(cfg.BaseURL, cfg.APIKey, cfg.SystemKey, cfg.UserID, cfg.Timeout)
 
+	caps := defaultCapabilities()
+
 	server := mcp.NewServer(&mcp.Implementation{
 		Name:    "new-api-mcp-server",
 		Version: version,
 	}, &mcp.ServerOptions{
 		Instructions: "Available tool categories: Channel management (add, toggle, set priority, test channels), User management (list, toggle status, set quota), Token/group management (switch group), Provider listing (list providers with balance). API admin tools (api_ prefix) for channel/user/token/log CRUD. Relay/model tools for AI model inference (chat, image, video generation). Use descriptive queries to search for specific tools.",
 		PageSize:     100,
+		Capabilities: caps,
 	})
 
 	// Register relay tools
@@ -208,6 +211,16 @@ func run() error {
 	}
 
 	return nil
+}
+
+// defaultCapabilities returns the standard server capabilities.
+// Extracted for testability.
+func defaultCapabilities() *mcp.ServerCapabilities {
+	caps := &mcp.ServerCapabilities{
+		Logging: &mcp.LoggingCapabilities{},
+	}
+	caps.AddExtension("io.modelcontextprotocol/streamable-http", nil)
+	return caps
 }
 
 func authMiddleware(token string, next http.Handler) http.Handler {

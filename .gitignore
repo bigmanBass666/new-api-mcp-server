@@ -1,7 +1,7 @@
 bin/
-server
+/server
 
-server.exe
+/server.exe
 tmp/
 wget-log
 test-sandbox/

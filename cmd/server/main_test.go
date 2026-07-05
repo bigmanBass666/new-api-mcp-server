@@ -173,3 +173,30 @@ func TestMaxBodyMiddleware_LimitsSize(t *testing.T) {
 		t.Errorf("expected 200, got %d", w.Code)
 	}
 }
+
+func TestDefaultCapabilities_IncludesExtensions(t *testing.T) {
+	caps := defaultCapabilities()
+	data, err := json.Marshal(caps)
+	if err != nil {
+		t.Fatalf("marshal capabilities: %v", err)
+	}
+
+	var result map[string]any
+	if err := json.Unmarshal(data, &result); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+
+	// Check extensions
+	exts, ok := result["extensions"].(map[string]any)
+	if !ok {
+		t.Fatal("expected 'extensions' in capabilities")
+	}
+	if _, ok := exts["io.modelcontextprotocol/streamable-http"]; !ok {
+		t.Error("expected streamable-http extension")
+	}
+
+	// Check logging is still present
+	if _, ok := result["logging"]; !ok {
+		t.Error("expected logging capability")
+	}
+}
