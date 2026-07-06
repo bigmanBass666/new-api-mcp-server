@@ -1,0 +1,9 @@
+- [x] test_and_report tool 注册后出现在 MCP 工具列表中
+- [x] test_and_report 调用 GET /api/channel/test 后正确提取 task_id
+- [x] test_and_report 轮询 system-task 端点直到任务完成
+- [x] test_and_report 返回的概览包含 tested/succeeded/failed/disabled/enabled 字段
+- [x] 已有任务冲突时返回友好消息而非 panic
+- [x] 超时场景返回部分摘要而非 hang
+- [x] 失败渠道详情按规范格式呈现
+- [x] 单元测试通过 race detector
+- [x] 编译通过（go build ./...）

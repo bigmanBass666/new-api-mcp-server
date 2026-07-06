@@ -1,8 +1,6 @@
 # CLAUDE.md
 
-> **重要：代理开发指南已迁移至 `AGENTS.md`** — 包含 MCP 开发工作流、注册流程、测试方式等。本文件仅保留项目概览。
->
-> 本地部署的New API部署目录在这儿。D:\Test\installations\new-api
+> 本地部署的 New API 部署目录在这儿：`D:\Test\installations\new-api`
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
@@ -71,3 +69,46 @@ Integration test: `go test -tags=integration -v -run TestIntegration`
 - **原子提交**：一个 commit 只做一件事
 - **提交信息格式**：`<type>: <简短描述>`（feat/fix/refactor/chore/docs）
 - **禁止**：攒多个改动一次性提交、提交信息写"更新代码"之类废话
+
+## MCP 开发工作流
+
+本项目的 MCP Server 开发测试标准流程：
+
+### 标准循环
+
+```
+编辑代码 → make build → 注册到 .mcp.json → 重启 Claude Code → 对话中测试
+```
+
+**不要**手动编译后启动 HTTP 模式再用 curl 测试——这绕过了 Claude Code 的 MCP 集成能力。
+
+### 注册 MCP Server 到项目
+
+使用 `setup-project-mcp` skill（全局路径：`C:\Users\86150\.claude\skills\setup-project-mcp\SKILL.md`）：
+
+1. **编译二进制**：`make build` → 生成 `bin/new-api-mcp-server.exe`
+2. **配置 `.mcp.json`**：在项目根目录创建/更新，写入 stdio 类型配置，包含必要的环境变量
+3. **重启 Claude Code**：退出当前会话 → 重新进入项目目录启动
+4. **批准连接**：输入 `/mcp` 批准新的 MCP 服务器
+5. **检查状态**：输入 `/doctor` 确认连接正常
+6. **对话测试**：直接向 Claude 提需求，Claude 会自动发现并调用 MCP 工具
+
+### 环境变量配置
+
+通过 `env` 字段注入，典型变量：
+
+| 变量 | 说明 | 必填 |
+|------|------|:----:|
+| `NEW_API_BASE_URL` | New API 实例地址 | ✅ |
+| `NEW_API_SYSTEM_KEY` | 管理员 access_token | ✅ |
+| `NEW_API_KEY` | 模型调用的 API key | 按需 |
+| `MCP_API_TOOLS_ENABLED` | 是否启用 API 管理工具 | 按需 |
+| `MCP_RELAY_ENABLED_GROUPS` | 启用的 relay 分组（`all` 开启全部） | 按需 |
+| `MCP_LOG_LEVEL` | 日志级别（debug/info/warn/error） | 按需 |
+
+### 注意事项
+
+- **变更后需重建**：每次修改 Go 代码后 `make build` 重新编译
+- **重启才能生效**：MCP Server 进程在 Claude Code 启动时加载，修改后需重启
+- **可同时开两个会话**：一个编辑代码，另一个测试（在同一项目目录用 `/mcp` 重新连接）
+- **E2E 测试**：`make test-e2e-go` 不需启动 Claude Code，直接验证完整功能

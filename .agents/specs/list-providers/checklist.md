@@ -1,0 +1,10 @@
+- [x] list_providers handler 实现完整：调用上游 API、解析 JSON、按 groups 分组、按 priority 排序、格式化输出
+- [x] list_providers 支持 group 和 status 可选筛选参数
+- [x] list_providers 在 register.go 中正确注册
+- [x] list_providers 在 main.go 中正确注册，仅在 SystemKey 和 APIToolsEnabled 时可用
+- [x] 测试覆盖正常场景：多渠道多分组返回正确分组视图
+- [x] 测试覆盖空列表场景：返回"没有找到任何渠道"
+- [x] 测试覆盖上游错误场景：返回 IsError=true
+- [x] 测试覆盖筛选参数：group 过滤和 status 过滤正确工作
+- [x] 编译通过：`go build ./...`
+- [x] 测试通过：`go test ./internal/hightools/... -v -count=1`

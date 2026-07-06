@@ -1,0 +1,13 @@
+- [x] spec.md 覆盖了全部功能需求
+- [x] tasks.md 任务划分合理、完全覆盖 spec.md 的需求
+- [x] Task 1 代码：list_users 工具 handler 正确调用 GET /api/user/ 并解析分页响应
+- [x] Task 1 代码：输出为 Markdown 表格格式，包含 ID、用户名、角色、状态、分组、已用配额、总配额
+- [x] Task 1 代码：角色映射正确（1=普通用户，10=管理员，100=超级管理员）
+- [x] Task 1 代码：状态映射正确（1=启用，otherwise=禁用）
+- [x] Task 1 代码：配额数字以千分位逗号分隔
+- [x] Task 1 代码：空列表时返回 "没有找到任何用户"
+- [x] Task 1 代码：上游错误时返回 IsError=true 和错误描述
+- [x] Task 1 代码：Prometheus 指标和 slog 日志记录正确
+- [x] Task 2 代码：register.go 中添加了 NewListUsersTool，格式与现有工具一致
+- [x] Task 3 代码：mock 上游正常响应，验证输出格式正确
+- [x] Task 3 代码：覆盖空列表、success=false、非 200 响应等边界情况
