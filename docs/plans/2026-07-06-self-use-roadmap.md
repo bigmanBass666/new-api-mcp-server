@@ -32,19 +32,21 @@
 
 **估算：** 5-8 天
 
-### 2.2 顺手修复（原方向 L + H）
+### 2.2 顺手修复（原方向 L + H）✅ 已完成
 
-**为什么做：** 每项不到半天，但对日常使用有实际改善。
+**验收结果：**
+- L — 输入验证错误规范化：handler.go 中 JSON 参数解析和路径参数类型验证失败返回 `&jsonrpc.Error{Code: -32000}` 协议级错误
+- H — 扩展协商声明：ServerOptions.Capabilities 显式声明 logging + `io.modelcontextprotocol/streamable-http` 扩展
+- 单元测试全部通过（race detector 无竞态）
+- 验收测试确认 initialize 响应中包含 `extensions.io.modelcontextprotocol/streamable-http: {}`
+- 提交记录：070f4b1（H）、b9c1fc2（L）
 
-**L — 输入验证错误规范化（~0.5 天）：**
-- 确保验证错误以 Tool Execution Error 格式返回（`code: -32000`）
-- LLM 可以读取错误消息并自纠正参数
-
-**H — 扩展协商声明（~0.5 天）：**
-- 在 server 初始化时显式声明 capabilities
-- 特别标注 `io.modelcontextprotocol/streamable-http` 支持
-
-**合计估算：** 1 天（可以在 Tasks 开发间隙顺手做）
+**关键发现（供 Phase 2 参考）：**
+1. MCP SDK 的 `mcp.Server` 不暴露 Capabilities 的读取方法，只能在构造时通过 ServerOptions.Capabilities 设置
+2. 设置 Capabilities 为非 nil 会覆盖 SDK 默认的 logging 能力，需显式保留 `Logging: &mcp.LoggingCapabilities{}`
+3. 扩展声明（streamable-http）仅是一个声明，不依赖实际传输模式——无论 stdio/HTTP 都可以声明
+4. ToolHandler 返回 `(nil, &jsonrpc.Error{Code: -32000, ...})` 会在 JSON-RPC 层面产生协议错误，适合验证类错误
+5. 其他运行时错误（上游错误、超时等）保持 IsError: true 内容级错误，SDK 文档明确建议这样
 
 ---
 
@@ -78,4 +80,5 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-06 | v2.0 | 阶段一（L+H 顺手修复）完成并验收通过。下一阶段：Tasks 扩展集成（方向 C）|
 | 2026-07-06 | v1.0 | 初版，基于自用优先策略 |
