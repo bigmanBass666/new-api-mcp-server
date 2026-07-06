@@ -1,0 +1,11 @@
+# Go source: normalize to LF per community standard (gofmt outputs LF)
+*.go text eol=lf
+
+# Makefile: requires LF line endings and literal tabs
+Makefile text eol=lf
+Makefile.* text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.ico binary
