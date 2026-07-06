@@ -19,18 +19,26 @@
 
 ## 2. 立即执行
 
-### 2.1 Tasks 扩展集成（原方向 C）
+### 2.1 Tasks 扩展集成（原方向 C）✅ 已完成
 
-**为什么做：** `test_and_report` 同步阻塞，渠道多时体验差。这是当前最大的使用痛点。
+**验收结果：**
+- TaskManager 核心实现（6 状态状态机 + TTL 清理 + 线程安全）
+- 声明 `io.modelcontextprotocol/tasks` 扩展 capability
+- `tasks_get` 工具：按 task_id 查询异步任务状态
+- `tasks_update` 工具：input_required 状态下提交 resume/retry 决策
+- `tasks_cancel` 工具：取消运行中任务
+- `test_and_report` 改为异步：触发即返回 task_id + 后台 goroutine 轮询
+- 33 个单元测试覆盖所有模块和边界场景
+- Race detector 全通过（0 竞态）
+- `make test` 全通过
 
-**做什么：**
-1. 声明 `io.modelcontextprotocol/tasks` 扩展 capability
-2. 实现 `tasks/get`、`tasks/update`、`tasks/cancel` handler
-3. 改造 `test_and_report` 为异步：后台批量测试，客户端轮询进度
-4. 遇到渠道异常时进入 `input_required` 状态等待确认
-5. 在 `internal/hightools/` 中提供 Tasks 工具基类
-
-**估算：** 5-8 天
+**关键发现：**
+1. MCP Go SDK v1.4.1 无原生 Tasks 扩展支持，TaskManager 需从零实现
+2. 线程安全的 TaskStore 使用 `sync.RWMutex` + map，`GetTask` 需返回副本而非内部指针以防止读写竞态
+3. 后台 goroutine 必须使用 `context.Background()` 而非 handler 传入的 context（handler 返回后 context 会被取消）
+4. 取消信号通过 channel 传递（`GetCancelCh` 返回只读 channel），resume 通过带缓冲 channel 传递
+5. `test_and_report` 的测试从同步改为异步后，需添加 `waitForTask` 辅助函数轮询 TaskManager 等待后台完成
+6. 使用 worktree 隔离子代理时，要注意主工作目录和工作树的区分（build 命令的路径解析）
 
 ### 2.2 顺手修复（原方向 L + H）✅ 已完成
 
@@ -41,10 +49,10 @@
 - 验收测试确认 initialize 响应中包含 `extensions.io.modelcontextprotocol/streamable-http: {}`
 - 提交记录：070f4b1（H）、b9c1fc2（L）
 
-**关键发现（供 Phase 2 参考）：**
+**关键发现（供后续参考）：**
 1. MCP SDK 的 `mcp.Server` 不暴露 Capabilities 的读取方法，只能在构造时通过 ServerOptions.Capabilities 设置
 2. 设置 Capabilities 为非 nil 会覆盖 SDK 默认的 logging 能力，需显式保留 `Logging: &mcp.LoggingCapabilities{}`
-3. 扩展声明（streamable-http）仅是一个声明，不依赖实际传输模式——无论 stdio/HTTP 都可以声明
+3. 扩展声明（streamable-http/tasks）仅是一个声明，不依赖实际传输模式——无论 stdio/HTTP 都可以声明
 4. ToolHandler 返回 `(nil, &jsonrpc.Error{Code: -32000, ...})` 会在 JSON-RPC 层面产生协议错误，适合验证类错误
 5. 其他运行时错误（上游错误、超时等）保持 IsError: true 内容级错误，SDK 文档明确建议这样
 
@@ -80,5 +88,6 @@
 
 | 日期 | 版本 | 变更 |
 |------|------|------|
+| 2026-07-06 | v3.0 | 阶段二（Tasks 扩展集成 C）完成并验收通过。所有代码已实现、测试通过、race detector 无竞态 |
 | 2026-07-06 | v2.0 | 阶段一（L+H 顺手修复）完成并验收通过。下一阶段：Tasks 扩展集成（方向 C）|
 | 2026-07-06 | v1.0 | 初版，基于自用优先策略 |
