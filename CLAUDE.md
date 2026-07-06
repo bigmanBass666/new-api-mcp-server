@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+> **重要：代理开发指南已迁移至 `AGENTS.md`** — 包含 MCP 开发工作流、注册流程、测试方式等。本文件仅保留项目概览。
+>
 > 本地部署的New API部署目录在这儿。D:\Test\installations\new-api
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
