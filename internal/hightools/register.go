@@ -10,12 +10,12 @@ import (
 // Each entry is produced by an independent constructor function, making
 // them easy to add, remove, or reorder. Callers iterate the returned slice
 // and register each ToolDef on the MCP server.
-func RegisterAll(c *client.Client, metrics *observability.Metrics) []ToolDef {
+func RegisterAll(c *client.Client, metrics *observability.Metrics, tm *TaskManager) []ToolDef {
 	return []ToolDef{
 		NewSetChannelPriorityTool(c, metrics),
 		NewToggleChannelTool(c, metrics),
 		NewToggleUserStatusTool(c, metrics),
-		NewTestAndReportTool(c, metrics),
+		NewTestAndReportTool(c, metrics, tm),
 		NewListProvidersTool(c, metrics),
 		NewSetUserQuotaTool(c, metrics),
 		NewShowBalanceTool(c, metrics),
@@ -26,5 +26,8 @@ func RegisterAll(c *client.Client, metrics *observability.Metrics) []ToolDef {
 		NewRevokeTokenTool(c, metrics),
 		NewListTokensTool(c, metrics),
 		NewAddChannelKeysTool(c, metrics),
+		NewTasksGetTool(tm),
+		NewTasksUpdateTool(tm),
+		NewTasksCancelTool(tm),
 	}
 }

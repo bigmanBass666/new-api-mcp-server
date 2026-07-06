@@ -70,6 +70,7 @@ func run() error {
 	}()
 
 	relayClient := client.New(cfg.BaseURL, cfg.APIKey, cfg.SystemKey, cfg.UserID, cfg.Timeout)
+	taskManager := hightools.NewTaskManager()
 
 	caps := defaultCapabilities()
 
@@ -129,7 +130,7 @@ func run() error {
 
 	// Register high-level tools
 	if cfg.SystemKey != "" && cfg.APIToolsEnabled {
-		highDefs := hightools.RegisterAll(relayClient, metrics)
+		highDefs := hightools.RegisterAll(relayClient, metrics, taskManager)
 		for _, def := range highDefs {
 			tool := &mcp.Tool{
 				Name:        def.Name,
@@ -220,6 +221,7 @@ func defaultCapabilities() *mcp.ServerCapabilities {
 		Logging: &mcp.LoggingCapabilities{},
 	}
 	caps.AddExtension("io.modelcontextprotocol/streamable-http", nil)
+	caps.AddExtension("io.modelcontextprotocol/tasks", nil)
 	return caps
 }
 

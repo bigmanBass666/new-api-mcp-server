@@ -62,13 +62,14 @@ type channelTestSummary struct {
 }
 
 // NewTestAndReportTool returns a ToolDef for triggering a full channel test
-// and returning a formatted health summary.
-func NewTestAndReportTool(c *client.Client, metrics *observability.Metrics) ToolDef {
+// in the background. It returns immediately with a task_id; use tasks_get to
+// poll for completion and retrieve the formatted report.
+func NewTestAndReportTool(c *client.Client, metrics *observability.Metrics, tm *TaskManager) ToolDef {
 	return ToolDef{
 		Name:        "test_and_report",
-		Description: "Test all channels and return a health summary. Triggers an async full-channel test, waits for completion, and returns a formatted report.",
+		Description: "Test all channels and return a health summary. Returns immediately with a task_id; use tasks_get to check progress and retrieve the formatted report.",
 		InputSchema: inputSchemaTestAndReport(),
-		Handler:    handleTestAndReport(c, metrics),
+		Handler:    handleTestAndReport(c, metrics, tm),
 	}
 }
 
@@ -79,7 +80,7 @@ func inputSchemaTestAndReport() map[string]any {
 	}
 }
 
-func handleTestAndReport(c *client.Client, metrics *observability.Metrics) mcp.ToolHandler {
+func handleTestAndReport(c *client.Client, metrics *observability.Metrics, tm *TaskManager) mcp.ToolHandler {
 	return func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		ctx, span := tracerTestAndReport.Start(ctx, "test_and_report",
 			trace.WithAttributes(
@@ -97,57 +98,148 @@ func handleTestAndReport(c *client.Client, metrics *observability.Metrics) mcp.T
 			}
 		}()
 
-		// Step 1: Trigger the channel test
+		// Step 1: Create a task in the TaskManager
+		task, err := tm.CreateTask("channel_test", nil)
+		if err != nil {
+			status = "error"
+			return errorResultTestAndReport(fmt.Sprintf("failed to create task: %v", err)), nil
+		}
+
+		// Step 2: Trigger the channel test
 		result, err := triggerChannelTest(ctx, c, metrics)
 		if err != nil {
 			status = "error"
+			tm.UpdateTask(task.ID, TaskStateFailed, WithError(fmt.Sprintf("failed to trigger channel test: %v", err)))
 			return errorResultTestAndReport(fmt.Sprintf("failed to trigger channel test: %v", err)), nil
 		}
 		if !result.Success {
 			status = "error"
 			// If another test is already running, return a friendly message
 			if result.Message != "" {
+				tm.UpdateTask(task.ID, TaskStateFailed, WithError(result.Message))
 				return &mcp.CallToolResult{
 					Content: []mcp.Content{
 						&mcp.TextContent{Text: fmt.Sprintf("Channel test already in progress: %s", result.Message)},
 					},
 				}, nil
 			}
+			tm.UpdateTask(task.ID, TaskStateFailed, WithError(fmt.Sprintf("channel test trigger failed: %s", result.Message)))
 			return errorResultTestAndReport(fmt.Sprintf("channel test trigger failed: %s", result.Message)), nil
 		}
 
-		taskID := ""
+		upstreamTaskID := ""
 		if result.Data != nil {
-			taskID = result.Data.TaskID
+			upstreamTaskID = result.Data.TaskID
 		}
-		if taskID == "" {
+		if upstreamTaskID == "" {
 			status = "error"
+			tm.UpdateTask(task.ID, TaskStateFailed, WithError("channel test did not return a task_id"))
 			return errorResultTestAndReport("channel test did not return a task_id"), nil
 		}
 
-		slog.InfoContext(ctx, "channel test triggered", "task_id", taskID)
-
-		// Step 2: Poll for completion
-		summary, pollErr := pollTaskCompletion(ctx, c, taskID, defaultTestAndReportConfig)
-
-		elapsed := time.Since(start).Seconds()
-
-		// Step 3: Format output
-		output := formatTestReport(summary, elapsed, pollErr)
-
-		slog.InfoContext(ctx, "test_and_report completed",
-			"task_id", taskID,
-			"elapsed_s", elapsed,
-			"tested", summary.Tested,
-			"succeeded", summary.Succeeded,
-			"failed", summary.Failed,
+		slog.InfoContext(ctx, "channel test triggered, starting background worker",
+			"task_id", task.ID,
+			"upstream_task_id", upstreamTaskID,
 		)
 
+		// Step 3: Start background worker goroutine
+		go runChannelTestWorker(c, metrics, tm, task.ID, upstreamTaskID)
+
+		// Step 4: Return immediately with task_id
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{
-				&mcp.TextContent{Text: output},
+				&mcp.TextContent{
+					Text: fmt.Sprintf("渠道测试已启动，任务 ID: %s。请使用 tasks_get 工具查询进度和获取报告。", task.ID),
+				},
 			},
 		}, nil
+	}
+}
+
+// runChannelTestWorker runs the channel test polling in a background goroutine.
+// It updates the TaskManager with state transitions as polling progresses.
+func runChannelTestWorker(c *client.Client, metrics *observability.Metrics, tm *TaskManager, taskID, upstreamTaskID string) {
+	// Mark task as running
+	if err := tm.UpdateTask(taskID, TaskStateRunning); err != nil {
+		slog.Error("failed to update task to running", "task_id", taskID, "error", err)
+		return
+	}
+
+	// Use a background context so the worker survives the handler's context.
+	// Cancellation is handled via tm.GetCancelCh(taskID).
+	ctx := context.Background()
+
+	// Start polling
+	summary, pollErr := pollTaskCompletion(ctx, c, upstreamTaskID, defaultTestAndReportConfig)
+
+	// Check for cancellation
+	select {
+	case <-tm.GetCancelCh(taskID):
+		// Task was cancelled; stop processing
+		return
+	default:
+	}
+
+	if pollErr != nil {
+		// On error, enter input_required state and wait for user decision
+		if err := tm.UpdateTask(taskID, TaskStateInputRequired,
+			WithError(pollErr.Error()),
+			WithMetadata("error_type", "poll_failure"),
+			WithMetadata("message", fmt.Sprintf("渠道测试执行异常: %s。请选择操作：resume(继续) 或 retry(重试)", pollErr.Error())),
+		); err != nil {
+			slog.Error("failed to set input_required", "task_id", taskID, "error", err)
+			return
+		}
+
+		// Wait for user decision via tasks_update
+		signal, err := tm.WaitForResume(taskID)
+		if err != nil {
+			// Channel closed (cancelled or cleaned up)
+			slog.Info("worker stopped waiting for resume", "task_id", taskID, "error", err)
+			return
+		}
+
+		switch signal.Action {
+		case "retry":
+			// Retry the polling from scratch
+			if err := tm.UpdateTask(taskID, TaskStateRunning, WithMetadata("retry", true)); err != nil {
+				slog.Error("failed to update task for retry", "task_id", taskID, "error", err)
+				return
+			}
+			summary, pollErr = pollTaskCompletion(ctx, c, upstreamTaskID, defaultTestAndReportConfig)
+			if pollErr != nil {
+				// Retry also failed
+				tm.UpdateTask(taskID, TaskStateFailed, WithError(pollErr.Error()))
+				return
+			}
+		case "resume":
+			// Resume with partial results (skip failed channels)
+			if err := tm.UpdateTask(taskID, TaskStateRunning, WithMetadata("resumed", true)); err != nil {
+				slog.Error("failed to update task for resume", "task_id", taskID, "error", err)
+				return
+			}
+		default:
+			// Unknown action
+			tm.UpdateTask(taskID, TaskStateFailed, WithError(fmt.Sprintf("unknown action: %s", signal.Action)))
+			return
+		}
+	}
+
+	// Format the final report
+	elapsed := 0.0
+	if t, err := tm.GetTask(taskID); err == nil {
+		elapsed = time.Since(t.CreatedAt).Seconds()
+	}
+	output := formatTestReport(summary, elapsed, pollErr)
+
+	if err := tm.UpdateTask(taskID, TaskStateSucceeded, WithResult(map[string]any{
+		"report":  output,
+		"tested":  summary.Tested,
+		"succeeded": summary.Succeeded,
+		"failed":  summary.Failed,
+		"elapsed_s": elapsed,
+	})); err != nil {
+		slog.Error("failed to update task to succeeded", "task_id", taskID, "error", err)
 	}
 }
 

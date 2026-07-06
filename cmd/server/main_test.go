@@ -194,6 +194,9 @@ func TestDefaultCapabilities_IncludesExtensions(t *testing.T) {
 	if _, ok := exts["io.modelcontextprotocol/streamable-http"]; !ok {
 		t.Error("expected streamable-http extension")
 	}
+	if _, ok := exts["io.modelcontextprotocol/tasks"]; !ok {
+		t.Error("expected tasks extension")
+	}
 
 	// Check logging is still present
 	if _, ok := result["logging"]; !ok {

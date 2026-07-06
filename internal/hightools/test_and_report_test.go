@@ -29,6 +29,27 @@ func setFastPoll() {
 	}
 }
 
+// waitForTask polls the TaskManager until the task reaches a terminal state
+// or the timeout expires. Returns the terminal task.
+func waitForTask(t *testing.T, tm *TaskManager, taskID string, timeout time.Duration) *Task {
+	t.Helper()
+	deadline := time.Now().Add(timeout)
+	for time.Now().Before(deadline) {
+		task, err := tm.GetTask(taskID)
+		if err != nil {
+			time.Sleep(5 * time.Millisecond)
+			continue
+		}
+		switch task.State {
+		case TaskStateSucceeded, TaskStateFailed, TaskStateCancelled:
+			return task
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	t.Fatalf("timed out waiting for task %s to complete", taskID)
+	return nil
+}
+
 func TestTestAndReport_Success_SomeFailed(t *testing.T) {
 	defer saveTestAndReportConfig()()
 	setFastPoll()
@@ -55,7 +76,8 @@ func TestTestAndReport_Success_SomeFailed(t *testing.T) {
 	defer upstream.Close()
 
 	c := client.New(upstream.URL, "", "sk-system", "", 0)
-	tool := NewTestAndReportTool(c, nil)
+	tm := NewTaskManager()
+	tool := NewTestAndReportTool(c, nil, tm)
 
 	req := &mcp.CallToolRequest{Params: &mcp.CallToolParamsRaw{Arguments: json.RawMessage(`{}`)}}
 	result, err := tool.Handler(context.Background(), req)
@@ -67,23 +89,42 @@ func TestTestAndReport_Success_SomeFailed(t *testing.T) {
 		t.Fatalf("Handler returned IsError=true for success: %s", result.Content[0].(*mcp.TextContent).Text)
 	}
 
+	// Should return immediately with task_id in message
 	text := result.Content[0].(*mcp.TextContent).Text
-	t.Logf("Output:\n%s", text)
+	t.Logf("Immediate response:\n%s", text)
 
-	if !strings.Contains(text, "测试数: 5") {
+	if !strings.Contains(text, "渠道测试已启动") {
+		t.Errorf("expected '渠道测试已启动' in immediate response, got: %s", text)
+	}
+
+	// Wait for background worker to complete
+	task := waitForTask(t, tm, extractTaskID(t, text), 5*time.Second)
+	if task.State != TaskStateSucceeded {
+		t.Fatalf("expected succeeded, got %s: %s", task.State, task.Error)
+	}
+
+	// Check result contains the report
+	resultData, ok := task.Result.(map[string]any)
+	if !ok {
+		t.Fatalf("expected map result, got %T", task.Result)
+	}
+	report, ok := resultData["report"].(string)
+	if !ok {
+		t.Fatalf("expected report string in result")
+	}
+	t.Logf("Final report:\n%s", report)
+
+	if !strings.Contains(report, "测试数: 5") {
 		t.Error("expected '测试数: 5' in output")
 	}
-	if !strings.Contains(text, "通过: 4") {
+	if !strings.Contains(report, "通过: 4") {
 		t.Error("expected '通过: 4' in output")
 	}
-	if !strings.Contains(text, "失败: 1") {
+	if !strings.Contains(report, "失败: 1") {
 		t.Error("expected '失败: 1' in output")
 	}
-	if !strings.Contains(text, "已完成（有失败）") {
+	if !strings.Contains(report, "⚠️ 已完成（有失败）") {
 		t.Error("expected status with warnings")
-	}
-	if !strings.Contains(text, "失败渠道详情") {
-		t.Error("expected '失败渠道详情' section when failures present")
 	}
 	if pollCount < 1 {
 		t.Error("expected at least one poll call")
@@ -110,7 +151,8 @@ func TestTestAndReport_Success_AllPass(t *testing.T) {
 	defer upstream.Close()
 
 	c := client.New(upstream.URL, "", "sk-system", "", 0)
-	tool := NewTestAndReportTool(c, nil)
+	tm := NewTaskManager()
+	tool := NewTestAndReportTool(c, nil, tm)
 
 	req := &mcp.CallToolRequest{Params: &mcp.CallToolParamsRaw{Arguments: json.RawMessage(`{}`)}}
 	result, err := tool.Handler(context.Background(), req)
@@ -123,22 +165,28 @@ func TestTestAndReport_Success_AllPass(t *testing.T) {
 	}
 
 	text := result.Content[0].(*mcp.TextContent).Text
-	t.Logf("Output:\n%s", text)
+	t.Logf("Immediate response:\n%s", text)
 
-	if !strings.Contains(text, "测试数: 3") {
+	task := waitForTask(t, tm, extractTaskID(t, text), 5*time.Second)
+	if task.State != TaskStateSucceeded {
+		t.Fatalf("expected succeeded, got %s: %s", task.State, task.Error)
+	}
+
+	resultData, _ := task.Result.(map[string]any)
+	report, _ := resultData["report"].(string)
+	t.Logf("Final report:\n%s", report)
+
+	if !strings.Contains(report, "测试数: 3") {
 		t.Error("expected '测试数: 3' in output")
 	}
-	if !strings.Contains(text, "通过: 3") {
+	if !strings.Contains(report, "通过: 3") {
 		t.Error("expected '通过: 3' in output")
 	}
-	if !strings.Contains(text, "失败: 0") {
+	if !strings.Contains(report, "失败: 0") {
 		t.Error("expected '失败: 0' in output")
 	}
-	if !strings.Contains(text, "✅ 已完成") {
+	if !strings.Contains(report, "✅ 已完成") {
 		t.Error("expected checkmark status")
-	}
-	if strings.Contains(text, "失败渠道详情") {
-		t.Error("should NOT include '失败渠道详情' section when all pass")
 	}
 }
 
@@ -151,7 +199,8 @@ func TestTestAndReport_Conflict(t *testing.T) {
 	defer upstream.Close()
 
 	c := client.New(upstream.URL, "", "sk-system", "", 0)
-	tool := NewTestAndReportTool(c, nil)
+	tm := NewTaskManager()
+	tool := NewTestAndReportTool(c, nil, tm)
 
 	req := &mcp.CallToolRequest{Params: &mcp.CallToolParamsRaw{Arguments: json.RawMessage(`{}`)}}
 	result, err := tool.Handler(context.Background(), req)
@@ -192,7 +241,8 @@ func TestTestAndReport_Timeout(t *testing.T) {
 	defer upstream.Close()
 
 	c := client.New(upstream.URL, "", "sk-system", "", 0)
-	tool := NewTestAndReportTool(c, nil)
+	tm := NewTaskManager()
+	tool := NewTestAndReportTool(c, nil, tm)
 
 	req := &mcp.CallToolRequest{Params: &mcp.CallToolParamsRaw{Arguments: json.RawMessage(`{}`)}}
 	result, err := tool.Handler(context.Background(), req)
@@ -201,26 +251,37 @@ func TestTestAndReport_Timeout(t *testing.T) {
 		t.Fatalf("Handler returned unexpected error: %v", err)
 	}
 	if result.IsError {
-		t.Fatalf("Handler should NOT set IsError=true for timeout: %s", result.Content[0].(*mcp.TextContent).Text)
+		t.Fatalf("Handler should NOT set IsError=true: %s", result.Content[0].(*mcp.TextContent).Text)
 	}
 
 	text := result.Content[0].(*mcp.TextContent).Text
-	t.Logf("Output:\n%s", text)
+	t.Logf("Immediate response:\n%s", text)
 
-	// Should contain timeout indication
-	if !strings.Contains(text, "未完成") && !strings.Contains(text, "timeout") && !strings.Contains(text, "Timeout") {
-		t.Errorf("expected timeout/未完成 indication in output, got: %s", text)
+	// Wait for the task to enter input_required (timeout triggers pause)
+	deadline := time.Now().Add(2 * time.Second)
+	var task *Task
+	for time.Now().Before(deadline) {
+		task, _ = tm.GetTask(extractTaskID(t, text))
+		if task != nil && task.State == TaskStateInputRequired {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
 	}
-	// Should contain partial summary fields
-	if !strings.Contains(text, "测试数:") {
-		t.Error("expected partial summary with tested count")
+	if task == nil || task.State != TaskStateInputRequired {
+		t.Fatalf("expected input_required after timeout, got %v", task)
+	}
+
+	// Verify the error message contains timeout info
+	if !strings.Contains(task.Error, "timeout") {
+		t.Errorf("expected timeout in error, got: %s", task.Error)
 	}
 }
 
 func TestTestAndReport_UpstreamError(t *testing.T) {
 	// Point at an unreachable address
 	c := client.New("http://127.0.0.1:1", "", "sk-system", "", 0)
-	tool := NewTestAndReportTool(c, nil)
+	tm := NewTaskManager()
+	tool := NewTestAndReportTool(c, nil, tm)
 
 	req := &mcp.CallToolRequest{Params: &mcp.CallToolParamsRaw{Arguments: json.RawMessage(`{}`)}}
 	result, err := tool.Handler(context.Background(), req)
@@ -252,7 +313,8 @@ func TestTestAndReport_NoTaskID(t *testing.T) {
 	defer upstream.Close()
 
 	c := client.New(upstream.URL, "", "sk-system", "", 0)
-	tool := NewTestAndReportTool(c, nil)
+	tm := NewTaskManager()
+	tool := NewTestAndReportTool(c, nil, tm)
 
 	req := &mcp.CallToolRequest{Params: &mcp.CallToolParamsRaw{Arguments: json.RawMessage(`{}`)}}
 	result, err := tool.Handler(context.Background(), req)
@@ -292,7 +354,8 @@ func TestTestAndReport_SystemTaskFailed(t *testing.T) {
 	defer upstream.Close()
 
 	c := client.New(upstream.URL, "", "sk-system", "", 0)
-	tool := NewTestAndReportTool(c, nil)
+	tm := NewTaskManager()
+	tool := NewTestAndReportTool(c, nil, tm)
 
 	req := &mcp.CallToolRequest{Params: &mcp.CallToolParamsRaw{Arguments: json.RawMessage(`{}`)}}
 	result, err := tool.Handler(context.Background(), req)
@@ -301,14 +364,28 @@ func TestTestAndReport_SystemTaskFailed(t *testing.T) {
 		t.Fatalf("Handler returned unexpected error: %v", err)
 	}
 	if result.IsError {
-		t.Fatalf("Handler should NOT set IsError=true for task failure: %s", result.Content[0].(*mcp.TextContent).Text)
+		t.Fatalf("Handler should NOT set IsError=true: %s", result.Content[0].(*mcp.TextContent).Text)
 	}
 
 	text := result.Content[0].(*mcp.TextContent).Text
-	t.Logf("Output:\n%s", text)
+	t.Logf("Immediate response:\n%s", text)
 
-	if !strings.Contains(text, "channel timeout") {
-		t.Errorf("expected 'channel timeout' in output, got: %s", text)
+	// Wait for task to enter input_required (upstream task failed)
+	deadline := time.Now().Add(2 * time.Second)
+	var task *Task
+	for time.Now().Before(deadline) {
+		task, _ = tm.GetTask(extractTaskID(t, text))
+		if task != nil && task.State == TaskStateInputRequired {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	if task == nil || task.State != TaskStateInputRequired {
+		t.Fatalf("expected input_required after upstream task failure, got state=%v err=%s", task.State, task.Error)
+	}
+
+	if !strings.Contains(task.Error, "channel timeout") {
+		t.Errorf("expected 'channel timeout' in error, got: %s", task.Error)
 	}
 }
 
@@ -332,7 +409,8 @@ func TestTestAndReport_EmptyResultOnSuccess(t *testing.T) {
 	defer upstream.Close()
 
 	c := client.New(upstream.URL, "", "sk-system", "", 0)
-	tool := NewTestAndReportTool(c, nil)
+	tm := NewTaskManager()
+	tool := NewTestAndReportTool(c, nil, tm)
 
 	req := &mcp.CallToolRequest{Params: &mcp.CallToolParamsRaw{Arguments: json.RawMessage(`{}`)}}
 	result, err := tool.Handler(context.Background(), req)
@@ -341,15 +419,24 @@ func TestTestAndReport_EmptyResultOnSuccess(t *testing.T) {
 		t.Fatalf("Handler returned unexpected error: %v", err)
 	}
 	if result.IsError {
-		t.Fatalf("Handler should NOT set IsError=true for null result: %s", result.Content[0].(*mcp.TextContent).Text)
+		t.Fatalf("Handler should NOT set IsError=true: %s", result.Content[0].(*mcp.TextContent).Text)
 	}
 
 	text := result.Content[0].(*mcp.TextContent).Text
-	t.Logf("Output:\n%s", text)
+	t.Logf("Immediate response:\n%s", text)
 
-	// With nil result, decodeSummary gets an empty struct
-	if !strings.Contains(text, "测试数: 0") {
-		t.Errorf("expected zero counts for nil result, got: %s", text)
+	// Wait for background worker to complete
+	task := waitForTask(t, tm, extractTaskID(t, text), 5*time.Second)
+	if task.State != TaskStateSucceeded {
+		t.Fatalf("expected succeeded, got %s: %s", task.State, task.Error)
+	}
+
+	resultData, _ := task.Result.(map[string]any)
+	report, _ := resultData["report"].(string)
+	t.Logf("Final report:\n%s", report)
+
+	if !strings.Contains(report, "测试数: 0") {
+		t.Errorf("expected zero counts for nil result, got: %s", report)
 	}
 }
 
@@ -362,8 +449,9 @@ func TestTestAndReport_CancelContext(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
 		case "/api/channel/test":
+			// Return success before cancellation kicks in
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`{"success":true,"data":{"task_id":"task-cancel"}}`))
+			w.Write([]byte(`{"success":true,"data":{"task_id":"task-cancel-ctx"}}`))
 		default:
 			w.WriteHeader(http.StatusOK)
 			w.Write([]byte(`{"success":true,"data":{"status":"running"}}`))
@@ -372,7 +460,8 @@ func TestTestAndReport_CancelContext(t *testing.T) {
 	defer upstream.Close()
 
 	c := client.New(upstream.URL, "", "sk-system", "", 0)
-	tool := NewTestAndReportTool(c, nil)
+	tm := NewTaskManager()
+	tool := NewTestAndReportTool(c, nil, tm)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // cancel immediately
@@ -380,6 +469,7 @@ func TestTestAndReport_CancelContext(t *testing.T) {
 	req := &mcp.CallToolRequest{Params: &mcp.CallToolParamsRaw{Arguments: json.RawMessage(`{}`)}}
 	result, err := tool.Handler(ctx, req)
 
+	// With cancelled context, the HTTP call in triggerChannelTest should fail
 	if err != nil {
 		t.Fatalf("Handler returned unexpected error: %v", err)
 	}
@@ -388,10 +478,8 @@ func TestTestAndReport_CancelContext(t *testing.T) {
 	t.Logf("Output:\n%s", text)
 
 	// Should handle gracefully (either IsError or partial summary with cancellation)
-	// The handler calls triggerChannelTest first; if ctx is cancelled, the HTTP
-	// call in Do() will likely fail. Either way, should not panic.
-	if !strings.Contains(text, "failed to trigger") && !result.IsError {
-		t.Log("Handler handled cancellation gracefully (no error)")
+	if !result.IsError {
+		t.Log("Handler handled cancellation gracefully (no error response)")
 	}
 }
 
@@ -437,4 +525,22 @@ func TestTestAndReport_FormatOutput(t *testing.T) {
 			}
 		})
 	}
+}
+
+// extractTaskID extracts the task ID from the test_and_report immediate response message.
+// The response format is: "渠道测试已启动，任务 ID: <uuid>。请使用 ..."
+func extractTaskID(t *testing.T, msg string) string {
+	t.Helper()
+	prefix := "任务 ID: "
+	idx := strings.Index(msg, prefix)
+	if idx < 0 {
+		t.Fatalf("could not find task ID in message: %s", msg)
+		return ""
+	}
+	idPart := msg[idx+len(prefix):]
+	dotIdx := strings.Index(idPart, "。")
+	if dotIdx > 0 {
+		return idPart[:dotIdx]
+	}
+	return strings.TrimSpace(idPart)
 }
