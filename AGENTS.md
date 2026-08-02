@@ -56,7 +56,7 @@ openapi/             通过 go:embed 嵌入的 OpenAPI 规范（api.json、relay
 - **缩进**：Tab（非空格）——所有 Go 源文件使用 tab 缩进
 - **工具命名**：仅 `[a-zA-Z0-9_\-.]`（MCP SDK 要求）；管理端工具加 `api_` 前缀，relay 端无前缀
 - **API key**：`NEW_API_SYSTEM_KEY`（管理端）、`NEW_API_KEY`（relay 端）——切勿混用
-- **OpenAPI 规范**：通过 `go:embed` 嵌入，运行时不会从磁盘读取
+- **OpenAPI 规范**：通过 `go:embed` 嵌入，运行时不会从磁盘读取。上游更新后需重新导出，使用项目自带的 `scripts/update-spec.sh` 一键更新
 - **非 JSON 响应**：返回 MCP 客户端前会做 base64 编码
 
 ## 边界规则
@@ -93,10 +93,41 @@ openapi/             通过 go:embed 嵌入的 OpenAPI 规范（api.json、relay
 
 ### 注意事项
 
-- 每次修改 Go 代码后必须 `make build` 重新编译
+- 每次修改 Go 代码后必须 `go build -o bin/new-api-mcp-server.exe ./cmd/server` 重新编译
 - MCP Server 进程在 Claude Code 启动时加载，修改后需重启才生效
 - 可同时开两个会话：一个编辑代码，另一个测试
-- 本地快速验证用 `make test-e2e-go`，不需要启动 Claude Code
+- 本地快速验证用 `go test -tags=e2e -v -count=1 -timeout 60s ./cmd/server/`，不需要启动 Claude Code
+
+## 上游 New API 更新
+
+### 机制说明
+
+`openapi/api.json` 和 `openapi/relay.json` 是硬编码的静态 spec，上游 New API 更新后可能过时。项目内置了 `internal/extractor/` 机制解决此问题：
+
+- 连接运行中的 New API 实例
+- 读取现有 api.json 作为骨架
+- 对每个端点发送 GET 请求，从真实响应推断 schema
+- 合并回完整的 OpenAPI 3.0.1 文档
+
+### 更新流程
+
+```bash
+# 1. 确保 New API 运行在 localhost:4050（通过 Docker Compose 启动）
+# 2. 运行更新脚本
+bash scripts/update-spec.sh
+
+# 3. 重新编译
+go build -o bin/new-api-mcp-server.exe ./cmd/server
+
+# 4. 运行测试确认
+go test ./... -v -race -count=1
+```
+
+### 关键原则
+
+- **不要手动编辑 api.json/relay.json** — 它们由 New API 导出，手动修改会被覆盖且容易出错
+- **extractor 只做读取** — 只发 GET 请求，不会修改上游数据
+- 如果上游新增/删除端点，extractor 会捕捉到变化并更新骨架
 
 ## Agent Skills
 

@@ -44,11 +44,64 @@
       },
       "Channel": {
         "properties": {
+          "auto_ban": {
+            "description": "Auto-ban on failure",
+            "type": "integer"
+          },
+          "balance": {
+            "description": "Account balance",
+            "type": "number"
+          },
+          "balance_updated_time": {
+            "type": "integer"
+          },
           "base_url": {
+            "type": "string"
+          },
+          "channel_info": {
+            "description": "Multi-key rotation configuration",
+            "properties": {
+              "is_multi_key": {
+                "type": "boolean"
+              },
+              "multi_key_mode": {
+                "enum": [
+                  "random",
+                  "polling"
+                ],
+                "type": "string"
+              },
+              "multi_key_polling_index": {
+                "type": "integer"
+              },
+              "multi_key_size": {
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          },
+          "created_time": {
+            "type": "integer"
+          },
+          "group": {
+            "description": "Channel group (e.g., default, vip)",
+            "type": "string"
+          },
+          "header_override": {
+            "nullable": true,
             "type": "string"
           },
           "id": {
             "type": "integer"
+          },
+          "key": {
+            "description": "API key for this channel",
+            "type": "string",
+            "x-omit": "true"
+          },
+          "model_mapping": {
+            "nullable": true,
+            "type": "string"
           },
           "models": {
             "type": "string"
@@ -56,96 +109,8 @@
           "name": {
             "type": "string"
           },
-          "priority": {
-            "type": "integer"
-          },
-          "status": {
-            "type": "integer"
-          },
-          "tag": {
+          "openai_organization": {
             "type": "string"
-          },
-          "type": {
-            "type": "integer"
-          },
-          "weight": {
-            "type": "integer"
-          },
-          "group": {
-            "type": "string",
-            "description": "Channel group (e.g., default, vip)"
-          },
-          "key": {
-            "type": "string",
-            "x-omit": "true",
-            "description": "API key for this channel"
-          },
-          "channel_info": {
-            "type": "object",
-            "properties": {
-              "is_multi_key": {
-                "type": "boolean"
-              },
-              "multi_key_size": {
-                "type": "integer"
-              },
-              "multi_key_polling_index": {
-                "type": "integer"
-              },
-              "multi_key_mode": {
-                "type": "string",
-                "enum": [
-                  "random",
-                  "polling"
-                ]
-              }
-            },
-            "description": "Multi-key rotation configuration"
-          },
-          "setting": {
-            "type": "string",
-            "description": "Channel settings JSON"
-          },
-          "settings": {
-            "type": "string",
-            "description": "Extended settings JSON"
-          },
-          "model_mapping": {
-            "type": "string",
-            "nullable": true
-          },
-          "param_override": {
-            "type": "string",
-            "nullable": true
-          },
-          "header_override": {
-            "type": "string",
-            "nullable": true
-          },
-          "auto_ban": {
-            "type": "integer",
-            "description": "Auto-ban on failure"
-          },
-          "used_quota": {
-            "type": "integer",
-            "description": "Used quota"
-          },
-          "balance": {
-            "type": "number",
-            "description": "Account balance"
-          },
-          "balance_updated_time": {
-            "type": "integer"
-          },
-          "created_time": {
-            "type": "integer"
-          },
-          "test_time": {
-            "type": "integer"
-          },
-          "response_time": {
-            "type": "integer",
-            "description": "Response time in ms"
           },
           "other": {
             "type": "string"
@@ -153,81 +118,116 @@
           "other_info": {
             "type": "string"
           },
-          "remark": {
-            "type": "string",
-            "nullable": true
+          "param_override": {
+            "nullable": true,
+            "type": "string"
           },
-          "openai_organization": {
+          "priority": {
+            "type": "integer"
+          },
+          "remark": {
+            "nullable": true,
+            "type": "string"
+          },
+          "response_time": {
+            "description": "Response time in ms",
+            "type": "integer"
+          },
+          "setting": {
+            "description": "Channel settings JSON",
+            "type": "string"
+          },
+          "settings": {
+            "description": "Extended settings JSON",
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "tag": {
             "type": "string"
           },
           "test_model": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "type": "object",
-        "required": [
-          "name",
-          "type"
-        ]
-      },
-      "Log": {
-        "properties": {
-          "content": {
+            "nullable": true,
             "type": "string"
           },
-          "created_at": {
-            "type": "integer"
-          },
-          "id": {
+          "test_time": {
             "type": "integer"
           },
           "type": {
             "type": "integer"
           },
-          "user_id": {
+          "used_quota": {
+            "description": "Used quota",
             "type": "integer"
           },
-          "username": {
-            "type": "string"
-          },
-          "token_name": {
-            "type": "string"
-          },
-          "model_name": {
-            "type": "string"
-          },
-          "quota": {
+          "weight": {
             "type": "integer"
-          },
-          "prompt_tokens": {
-            "type": "integer"
-          },
-          "completion_tokens": {
-            "type": "integer"
-          },
-          "use_time": {
-            "type": "number"
-          },
-          "is_stream": {
-            "type": "boolean"
-          },
+          }
+        },
+        "required": [
+          "name",
+          "type"
+        ],
+        "type": "object"
+      },
+      "Log": {
+        "properties": {
           "channel": {
             "type": "integer"
           },
           "channel_name": {
             "type": "string"
           },
-          "token_id": {
+          "completion_tokens": {
+            "type": "integer"
+          },
+          "content": {
+            "type": "string"
+          },
+          "created_at": {
             "type": "integer"
           },
           "group": {
             "type": "string"
           },
+          "id": {
+            "type": "integer"
+          },
+          "is_stream": {
+            "type": "boolean"
+          },
+          "model_name": {
+            "type": "string"
+          },
+          "prompt_tokens": {
+            "type": "integer"
+          },
+          "quota": {
+            "type": "integer"
+          },
           "request_id": {
             "type": "string"
           },
+          "token_id": {
+            "type": "integer"
+          },
+          "token_name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "integer"
+          },
           "upstream_request_id": {
+            "type": "string"
+          },
+          "use_time": {
+            "type": "number"
+          },
+          "user_id": {
+            "type": "integer"
+          },
+          "username": {
             "type": "string"
           }
         },
@@ -279,14 +279,35 @@
       },
       "Token": {
         "properties": {
+          "accessed_time": {
+            "type": "integer"
+          },
+          "allow_ips": {
+            "type": "string"
+          },
+          "created_time": {
+            "type": "integer"
+          },
+          "cross_group_retry": {
+            "type": "boolean"
+          },
           "expired_time": {
             "type": "integer"
+          },
+          "group": {
+            "type": "string"
           },
           "id": {
             "type": "integer"
           },
           "key": {
             "type": "string"
+          },
+          "model_limits": {
+            "type": "string"
+          },
+          "model_limits_enabled": {
+            "type": "boolean"
           },
           "name": {
             "type": "string"
@@ -300,31 +321,10 @@
           "unlimited_quota": {
             "type": "boolean"
           },
-          "user_id": {
-            "type": "integer"
-          },
-          "group": {
-            "type": "string"
-          },
           "used_quota": {
             "type": "integer"
           },
-          "model_limits_enabled": {
-            "type": "boolean"
-          },
-          "model_limits": {
-            "type": "string"
-          },
-          "allow_ips": {
-            "type": "string"
-          },
-          "cross_group_retry": {
-            "type": "boolean"
-          },
-          "created_time": {
-            "type": "integer"
-          },
-          "accessed_time": {
+          "user_id": {
             "type": "integer"
           }
         },
@@ -332,6 +332,12 @@
       },
       "User": {
         "properties": {
+          "aff_code": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "integer"
+          },
           "display_name": {
             "type": "string"
           },
@@ -344,6 +350,9 @@
           "id": {
             "type": "integer"
           },
+          "last_login_at": {
+            "type": "integer"
+          },
           "quota": {
             "type": "integer"
           },
@@ -353,6 +362,9 @@
           "role": {
             "type": "integer"
           },
+          "setting": {
+            "type": "string"
+          },
           "status": {
             "type": "integer"
           },
@@ -360,18 +372,6 @@
             "type": "integer"
           },
           "username": {
-            "type": "string"
-          },
-          "aff_code": {
-            "type": "string"
-          },
-          "created_at": {
-            "type": "integer"
-          },
-          "last_login_at": {
-            "type": "integer"
-          },
-          "setting": {
             "type": "string"
           }
         },
@@ -527,6 +527,17 @@
       },
       "vendor_counts": {
         "nullable": true,
+        "type": "object"
+      },
+      "vip": {
+        "properties": {
+          "desc": {
+            "type": "string"
+          },
+          "ratio": {
+            "type": "integer"
+          }
+        },
         "type": "object"
       }
     },

@@ -14,8 +14,9 @@ new-api-mcp-server 是一个 Go MCP（Model Context Protocol）服务器，将 [
 | **Relay 端点** | 位于 `relay/` 目录的工具，负责将上游 API 转发到实际 LLM 提供方 |
 | **API 管理端点** | 位于 `api/` 目录的工具，管理 New API 自身的配置（渠道、用户、令牌等） |
 | **高层工具** | `hightools/` 目录中的工具，封装多个 API 调用的复合操作（如 add_channel、toggle_channel） |
-| **OpenAPI Spec** | `openapi/` 目录下的 `api.json` 和 `relay.json`，从 New API 提取并通过 `go:embed` 嵌入 |
+| **OpenAPI Spec** | `openapi/` 目录下的 `api.json` 和 `relay.json`，从 New API 提取并通过 `go:embed` 嵌入。上游更新后使用 `scripts/update-spec.sh` 一键重新提取 |
 | **ToolDef** | `internal/openapi/` 解析出的工具定义结构，包含 name、description、inputSchema、handler |
+| **Extractor** | `internal/extractor/` 内置的规范提取器，连接运行中的 New API，从真实响应推断 schema，解决静态 spec 过时问题 |
 | **Channel** | 上游 LLM 提供方的渠道配置（API key、base URL、模型、速率限制等） |
 | **Token** | 用户/渠道的访问令牌，用于认证 |
 | **Task** | Tasks 扩展（phase 2 集成），支持异步任务的状态查询、更新和取消 |
