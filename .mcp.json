@@ -1,10 +1,12 @@
 {
   "mcpServers": {
     "new-api": {
-      "type": "http",
-      "url": "http://localhost:4051/mcp",
-      "headers": {
-        "Authorization": "Bearer ${MCP_HTTP_AUTH_TOKEN}"
+      "command": "bin\\new-api-mcp-server.exe",
+      "env": {
+        "NEW_API_BASE_URL": "http://localhost:4050",
+        "NEW_API_SYSTEM_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl91c2UiOiJhY2Nlc3MiLCJzaWQiOiI0NTYzZjlhYS01NjA5LTQzNmItYjg4Yy0yZDE3Y2M1ZWRhZDEiLCJ1diI6MSwic3YiOjEsImlzcyI6Im5ldy1hcGkiLCJzdWIiOiIyIiwiYXVkIjpbIm5ldy1hcGktZGFzaGJvYXJkIl0sImV4cCI6MTc4NTY5NTk1NCwibmJmIjoxNzg1Njk1MDQ5LCJpYXQiOjE3ODU2OTUwNTQsImp0aSI6IjNjYTUwMzNlLTA2MTQtNGI2ZC1iMTBkLWY2OTRhYmY2N2RlMSJ9.1jddtXKJJTE0mrmw5rad6YOp3h5FTICH6GvFIYA-bcc",
+        "MCP_API_TOOLS_ENABLED": "true",
+        "MCP_LOG_LEVEL": "info"
       }
     }
   }

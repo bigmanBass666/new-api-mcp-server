@@ -4,25 +4,35 @@
 
 ## 开发环境
 
-- **操作系统**：Windows 11，使用 Git Bash
-- **Go 版本**：1.25
+- **操作系统**：Windows 11，通过 WSL2 Ubuntu 使用 Linux 工具链
+- **Go 版本**：1.26+（Windows 侧 scoop 安装，`go.exe` 在 `D:\apps\scoop\shims\`）
+- **没有 `make`** — 直接使用 `go build` 命令，不要假设有 make
+- **Docker**：在 WSL Ubuntu 中，不在 Windows PATH 中。使用 `wsl -d Ubuntu -e bash -c "docker ..."` 调用
+- **New API 实例**：部署在 `D:\Work\Projects\nailong-api-deploy`，通过 Docker Compose 在 WSL 中管理
 - **所有命令在项目根目录执行**
 - 二进制输出：`bin/new-api-mcp-server.exe`（Windows）/ `bin/new-api-mcp-server`（Unix）
-- New API 实例通常部署在 `D:\Test\installations\new-api`
+- New API 实例部署在 `D:\Work\Projects\nailong-api-deploy`
+
+## WSL 路径约定
+
+项目目录在 WSL 中的路径为 `/mnt/d/Work/Projects/new-api-mcp-server`，New API 部署为 `/mnt/d/Work/Projects/nailong-api-deploy`。
+
+需要从 WSL 执行 Docker 命令时：
+```bash
+wsl -d Ubuntu -e bash -c "cd /mnt/d/Work/Projects/nailong-api-deploy && docker compose up -d"
+```
 
 ## 构建与测试
 
 | 命令 | 用途 |
 |---------|------|
-| `make build` | 编译到 `bin/` |
-| `make test` | 全量测试（含 race detector） |
-| `make lint` | `golangci-lint` |
-| `make run` | `go run ./cmd/server` |
-| `make test-e2e-go` | 独立 E2E 测试（无需 Docker） |
-| `make test-int` | 集成测试（需运行中的 New API） |
-
-| 单测试执行 | `go test ./internal/config/ -v -run TestLoad_Defaults` |
-| 单模块 lint | `golangci-lint run ./internal/hightools/` |
+| `go build -o bin/new-api-mcp-server.exe ./cmd/server` | 编译到 `bin/` |
+| `go test ./... -v -race -count=1` | 全量测试（含 race detector） |
+| `go test ./internal/config/ -v -run TestLoad_Defaults` | 单测试执行 |
+| `golangci-lint run ./...` | lint |
+| `go run ./cmd/server` | 运行 |
+| `go test -tags=e2e -v -count=1 -timeout 60s ./cmd/server/` | 独立 E2E 测试（无需 Docker） |
+| `go test -tags=integration -v -count=1 ./internal/hightools/` | 集成测试（需运行中的 New API） |
 
 ## 目录结构
 
