@@ -105,35 +105,54 @@ openapi/             通过 go:embed 嵌入的 OpenAPI 规范（api.json、relay
 ## 常见陷阱
 
 - Go 源文件使用 **Tab** 而非空格——Edit 工具在 tab 被转为空格时会失败
-- 每次代码变更后必须重新编译（`make build`），然后才能通过 MCP 测试
 - `NEW_API_KEY` 和 `NEW_API_SYSTEM_KEY` 对应完全不同的工具组——管理端工具无法用 relay key 调用
 - Docker 健康检查使用 **4051 端口**（CI 中硬编码），不是默认的 3000
-- CI 中的 E2E 测试需要 `docker compose` 启动完整的 New API 栈——本地用 `make test-e2e-go` 更快
+- CI 中的 E2E 测试需要 `docker compose` 启动完整的 New API 栈——本地用 `go test -tags=e2e -v -count=1 -timeout 60s ./cmd/server/` 更快
 
 ## MCP 开发工作流
 
 ```
-编辑代码 → make build → 注册到 .mcp.json → 重启 Claude Code → 对话中测试
+编辑代码 → go build → ./scripts/dev.sh http → 验证 → 对话中测试
 ```
 
-不要手动编译后启动 HTTP 模式再用 curl 测试——绕过了 Claude Code 的 MCP 集成能力。
+### 本地快速启动
 
-### 注册 MCP Server
+使用 `scripts/dev.sh`：
+
+```bash
+# HTTP 模式（Inspector / conformance / 浏览器可连接）
+./scripts/dev.sh http
+
+# stdio 模式（通过 Claude Code 对话使用）
+./scripts/dev.sh stdio
+```
+
+脚本会自动 `go build` 然后启动，默认环境变量已预填。
+
+### 注册到 Claude Code
 
 使用 `setup-project-mcp` skill：
 
-1. **编译**：`make build` → `bin/new-api-mcp-server.exe`
+1. **编译**：`go build -o bin/new-api-mcp-server.exe ./cmd/server`
 2. **配置 `.mcp.json`**：项目根目录写入 stdio 配置，注入环境变量
 3. **重启 Claude Code**，输入 `/mcp` 批准连接
 4. **验证**：`/doctor` 确认连接正常
 5. **对话测试**：直接向 Claude 提需求
 
-### 注意事项
+### Inspector / Conformance
 
-- 每次修改 Go 代码后必须 `go build -o bin/new-api-mcp-server.exe ./cmd/server` 重新编译
-- MCP Server 进程在 Claude Code 启动时加载，修改后需重启才生效
-- 可同时开两个会话：一个编辑代码，另一个测试
-- 本地快速验证用 `go test -tags=e2e -v -count=1 -timeout 60s ./cmd/server/`，不需要启动 Claude Code
+启动 HTTP 模式后：
+
+```bash
+# Inspector 可视化调试
+npx @modelcontextprotocol/inspector --url http://localhost:4051/mcp
+
+# Conformance 协议合规测试
+npx @modelcontextprotocol/conformance server \
+  --url "http://localhost:4051/mcp" \
+  --suite active \
+  --expected-failures conformance-expected-failures.yml
+```
 
 ## 上游 New API 更新
 
