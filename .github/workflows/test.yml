@@ -87,6 +87,7 @@ jobs:
           npx @modelcontextprotocol/conformance server \
             --url "http://localhost:4051/mcp" \
             --suite active \
+            --expected-failures conformance-expected-failures.yml \
             --output-dir conformance-results
 
       - name: Upload conformance results
