@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/QuantumNous/new-api-mcp-server/internal/client"
+	"github.com/bigmanBass666/new-api-mcp-server/internal/client"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 

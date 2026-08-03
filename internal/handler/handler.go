@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/QuantumNous/new-api-mcp-server/internal/client"
-	"github.com/QuantumNous/new-api-mcp-server/internal/observability"
-	"github.com/QuantumNous/new-api-mcp-server/internal/openapi"
+	"github.com/bigmanBass666/new-api-mcp-server/internal/client"
+	"github.com/bigmanBass666/new-api-mcp-server/internal/observability"
+	"github.com/bigmanBass666/new-api-mcp-server/internal/openapi"
 	"github.com/modelcontextprotocol/go-sdk/jsonrpc"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"go.opentelemetry.io/otel"

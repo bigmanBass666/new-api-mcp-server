@@ -11,12 +11,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/QuantumNous/new-api-mcp-server/internal/client"
-	"github.com/QuantumNous/new-api-mcp-server/internal/handler"
-	"github.com/QuantumNous/new-api-mcp-server/internal/hightools"
-	openapipkg "github.com/QuantumNous/new-api-mcp-server/internal/openapi"
-	"github.com/QuantumNous/new-api-mcp-server/internal/registry"
-	embeddedSpecs "github.com/QuantumNous/new-api-mcp-server/openapi"
+	"github.com/bigmanBass666/new-api-mcp-server/internal/client"
+	"github.com/bigmanBass666/new-api-mcp-server/internal/handler"
+	"github.com/bigmanBass666/new-api-mcp-server/internal/hightools"
+	openapipkg "github.com/bigmanBass666/new-api-mcp-server/internal/openapi"
+	"github.com/bigmanBass666/new-api-mcp-server/internal/registry"
+	embeddedSpecs "github.com/bigmanBass666/new-api-mcp-server/openapi"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 

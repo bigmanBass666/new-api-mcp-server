@@ -9,7 +9,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/QuantumNous/new-api-mcp-server/internal/client"
+	"github.com/bigmanBass666/new-api-mcp-server/internal/client"
 )
 
 // mockUser is a helper to build a user JSON object for the mock upstream.

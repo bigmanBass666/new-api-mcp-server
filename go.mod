@@ -1,4 +1,4 @@
-module github.com/QuantumNous/new-api-mcp-server
+module github.com/bigmanBass666/new-api-mcp-server
 
 go 1.25.0
 

@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/QuantumNous/new-api-mcp-server/internal/extractor"
+	"github.com/bigmanBass666/new-api-mcp-server/internal/extractor"
 )
 
 func main() {

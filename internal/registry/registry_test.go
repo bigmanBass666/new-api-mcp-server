@@ -3,7 +3,7 @@ package registry
 import (
 	"testing"
 
-	"github.com/QuantumNous/new-api-mcp-server/internal/openapi"
+	"github.com/bigmanBass666/new-api-mcp-server/internal/openapi"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 

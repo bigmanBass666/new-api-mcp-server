@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/QuantumNous/new-api-mcp-server/internal/client"
-	"github.com/QuantumNous/new-api-mcp-server/internal/observability"
+	"github.com/bigmanBass666/new-api-mcp-server/internal/client"
+	"github.com/bigmanBass666/new-api-mcp-server/internal/observability"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"

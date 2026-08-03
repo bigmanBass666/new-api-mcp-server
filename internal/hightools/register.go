@@ -1,8 +1,8 @@
 package hightools
 
 import (
-	"github.com/QuantumNous/new-api-mcp-server/internal/client"
-	"github.com/QuantumNous/new-api-mcp-server/internal/observability"
+	"github.com/bigmanBass666/new-api-mcp-server/internal/client"
+	"github.com/bigmanBass666/new-api-mcp-server/internal/observability"
 )
 
 // RegisterAll returns the full list of high-level tool definitions.
