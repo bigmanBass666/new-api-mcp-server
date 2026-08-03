@@ -14,7 +14,9 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 # ---- 构建 ----
 echo "[build] compiling..."
 cd "$PROJECT_ROOT"
-go build -o bin/new-api-mcp-server ./cmd/server
+go build -o bin/new-api-mcp-server.exe ./cmd/server
+
+BINARY="bin/new-api-mcp-server.exe"
 
 # ---- 环境变量 ----
 export NEW_API_BASE_URL="${NEW_API_BASE_URL:-http://localhost:4050}"
@@ -32,8 +34,8 @@ if [ "$TRANSPORT" = "http" ]; then
     echo "       Inspector: npx @modelcontextprotocol/inspector --url http://localhost:4051/mcp"
     echo "       Conformance: npx @modelcontextprotocol/conformance server --url http://localhost:4051/mcp --suite active"
     echo ""
-    ./bin/new-api-mcp-server
+    "./$BINARY"
 else
     echo "[dev] starting stdio transport"
-    ./bin/new-api-mcp-server
+    "./$BINARY"
 fi
