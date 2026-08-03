@@ -34,6 +34,43 @@ wsl -d Ubuntu -e bash -c "cd /mnt/d/Work/Projects/nailong-api-deploy && docker c
 | `go test -tags=e2e -v -count=1 -timeout 60s ./cmd/server/` | 独立 E2E 测试（无需 Docker） |
 | `go test -tags=integration -v -count=1 ./internal/hightools/` | 集成测试（需运行中的 New API） |
 
+## MCP Inspector
+
+开发阶段的可视化调试工具，可视化浏览所有已注册工具、调用工具并查看原始 JSON-RPC 流量。
+
+**启动方式：**
+
+```bash
+# 确保 MCP server 以 HTTP 模式运行在 localhost:4051
+# 然后在一个终端启动 Inspector（连接 HTTP transport）
+npx @modelcontextprotocol/inspector --url http://localhost:4051/mcp
+```
+
+Inspector 将在浏览器中打开，显示：
+- 所有已注册工具列表及 schema
+- 每个工具的 `initialize` 握手详情
+- 交互式工具调用面板（自定义输入参数）
+- 原始 JSON-RPC 请求/响应日志
+
+Inspector 同时支持 stdio transport，但 HTTP 模式更方便独立调试（不需要通过 Claude Code 转发）。
+
+## MCP Conformance 测试
+
+CI pipeline 中的协议规范合规测试，作为质量门控。在 Docker 栈启动后、E2E 功能测试前运行。
+
+```bash
+# 本地手动运行（需要 Docker Compose 栈运行）
+npx @modelcontextprotocol/conformance server \
+  --url "http://localhost:4051/mcp" \
+  --suite active \
+  --output-dir conformance-results
+```
+
+- 测试覆盖：`initialize` 握手、`tools/list`、`tools/call` 等 30 个 active 场景
+- 超时：通过 CI 的 Docker 健康检查控制
+- 结果保存在 `conformance-results/` 目录，CI 中作为 artifact 上传
+- conformance 失败会阻止 pipeline 继续，阻止合并
+
 ## 目录结构
 
 ```
