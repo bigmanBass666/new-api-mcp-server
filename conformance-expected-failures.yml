@@ -1,11 +1,4 @@
-# Conformance expected failures baseline
-# These scenarios fail because they require a reference MCP server with
-# specific test tool/resource/prompt names (e.g. "test_simple_text").
-# Our server is a production MCP server with real tool names.
-# The passing scenarios (initialize, tools/list, ping, etc.) confirm
-# protocol compliance at the JSON-RPC level.
-
-scenarios:
+server:
   - completion-complete
   - tools-call-simple-text
   - tools-call-image
