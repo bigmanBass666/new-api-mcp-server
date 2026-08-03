@@ -4,6 +4,11 @@
 # ---- Build stage ----
 FROM golang:1.25-alpine AS builder
 
+ARG GOFLAGS=""
+ARG GOPROXY="https://proxy.golang.org"
+ARG GOSUMDB="sum.golang.org"
+ENV GOPROXY=${GOPROXY} GOSUMDB=${GOSUMDB} GOFLAGS=${GOFLAGS}
+
 WORKDIR /build
 
 # Cache dependencies
