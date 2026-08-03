@@ -1,3 +1,9 @@
+# Template baseline: LF for text, CRLF for Windows scripts
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
 # Go source: normalize to LF per community standard (gofmt outputs LF)
 *.go text eol=lf
 
